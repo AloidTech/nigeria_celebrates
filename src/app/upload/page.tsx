@@ -1,24 +1,17 @@
-import Link from 'next/link';
-import { ChevronDown, Play } from 'lucide-react';
+'use client';
 
+import Link from 'next/link';
+import { Play } from 'lucide-react';
+import { useState } from 'react';
+
+import CategorySelect from '@/components/ui/CategorySelect';
 import FormField from '@/components/ui/FormField';
 import StepIndicator from '@/components/ui/StepIndicator';
 import UploadDropzone from '@/components/ui/UploadDropzone';
 
-const categories = [
-    'Music / Songs',
-    'Football Freestyle',
-    'Basketball Freestyle',
-    'Comedy Skits',
-    'Artwork (Handmade Only)',
-    'Fashion Showcase',
-    'My Nigeria Story',
-    'Photography',
-    'Tech Innovation',
-    'Logo Design'
-] as const;
-
 export default function UploadPage() {
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
     return (
         <main className='min-h-screen pb-10 bg-[#F5F5F0] text-[#1A1A1A]'>
             <div className='mx-auto w-full max-w-3xl'>
@@ -38,7 +31,7 @@ export default function UploadPage() {
                 <section className='mx-auto mt-4 max-w-2xl rounded-xl bg-white p-8 shadow-sm'>
                     <div className='text-xs font-bold uppercase tracking-widest text-[#1A3C2E]'>STEP 1: UPLOAD YOUR MEDIA</div>
                     <div className='mt-3'>
-                        <UploadDropzone />
+                        <UploadDropzone key={selectedCategory ?? 'none'} selectedCategory={selectedCategory} />
                     </div>
 
                     <div className='mt-6 grid grid-cols-2 gap-4'>
@@ -52,21 +45,7 @@ export default function UploadPage() {
                             </FormField>
 
                             <FormField label='Category'>
-                                <div className='relative'>
-                                    <select
-                                        defaultValue=''
-                                        className='w-full appearance-none rounded-md border border-[#D0D0D0] bg-white px-4 py-2.5 pr-10 text-sm focus:border-[#1A3C2E] focus:outline-none'>
-                                        <option value='' disabled>
-                                            Select a category
-                                        </option>
-                                        {categories.map((category) => (
-                                            <option key={category} value={category}>
-                                                {category}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className='pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
-                                </div>
+                                <CategorySelect value={selectedCategory} onChange={setSelectedCategory} />
                             </FormField>
                         </div>
 
