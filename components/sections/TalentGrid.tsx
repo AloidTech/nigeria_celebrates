@@ -1,6 +1,6 @@
 import { BookOpen, Camera, CircleDot, Cpu, Drama, Gamepad2, Music2, Palette, Scissors, Shirt, UserRound } from 'lucide-react';
 
-import TalentCard from '@/components/ui/TalentCard';
+import TalentGridTile from '@/components/ui/TalentGridTile';
 
 const talentsRowOne = [
     { label: 'Music', icon: Music2 },
@@ -28,13 +28,13 @@ export default function TalentGrid() {
 
                 <div className='grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6'>
                     {talentsRowOne.map((item) => (
-                        <TalentCard key={item.label} {...item} />
+                        <TalentGridTile key={item.label} {...item} />
                     ))}
                 </div>
 
                 <div className='mt-8 grid grid-cols-2 gap-4 md:grid-cols-5 lg:max-w-none lg:grid-cols-5'>
                     {talentsRowTwo.map((item) => (
-                        <TalentCard key={item.label} {...item} />
+                        <TalentGridTile key={item.label} {...item} />
                     ))}
                 </div>
             </div>
