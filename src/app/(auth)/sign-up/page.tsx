@@ -9,19 +9,18 @@ import AuthDivider from '@/components/auth/AuthDivider';
 import EmailInput from '@/components/auth/EmailInput';
 import GoogleButton from '@/components/auth/GoogleButton';
 import PasswordInput from '@/components/auth/PasswordInput';
+import { storeAuthUser } from '@/lib/firebase/AuthContext';
 
 export default function SignUpPage() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
 
     async function handleSignUp() {
         setLoading(true);
         setError('');
-        setSuccess(false);
 
         if (!email || !password) {
             setError('Please enter an email and password.');
@@ -30,7 +29,10 @@ export default function SignUpPage() {
         }
 
         setTimeout(() => {
-            setSuccess(true);
+            storeAuthUser({
+                displayName: email.split('@')[0] || 'Creator',
+                email
+            });
             router.push('/arena');
         }, 450);
     }
@@ -41,7 +43,6 @@ export default function SignUpPage() {
                 <EmailInput value={email} onChange={setEmail} />
                 <PasswordInput value={password} onChange={setPassword} showForgot />
                 {error ? <p className='text-center text-sm text-red-500'>{error}</p> : null}
-                {success ? <p className='text-center text-sm text-[#1A3C2E]'>Check your email to confirm your account.</p> : null}
                 <button
                     type='button'
                     onClick={handleSignUp}

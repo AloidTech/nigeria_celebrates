@@ -9,6 +9,7 @@ import AuthDivider from '@/components/auth/AuthDivider';
 import EmailInput from '@/components/auth/EmailInput';
 import GoogleButton from '@/components/auth/GoogleButton';
 import PasswordInput from '@/components/auth/PasswordInput';
+import { storeAuthUser } from '@/lib/firebase/AuthContext';
 
 export default function SignInPage() {
     const router = useRouter();
@@ -28,6 +29,10 @@ export default function SignInPage() {
         }
 
         setTimeout(() => {
+            storeAuthUser({
+                displayName: email.split('@')[0] || 'Creator',
+                email
+            });
             router.push('/arena');
         }, 450);
     }
