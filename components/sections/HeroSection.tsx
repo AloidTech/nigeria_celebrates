@@ -1,5 +1,5 @@
+import Link from 'next/link';
 import { Sparkles, Upload, UserRound, Users } from 'lucide-react';
-
 export default function HeroSection() {
     return (
         <section id='top' className='relative min-h-[70vh] overflow-hidden bg-[#0a2818]'>
@@ -23,18 +23,24 @@ export default function HeroSection() {
                         Join the largest digital stage showcasing Nigeria&apos;s undisputed talent. Upload, Vote, and Win big.
                     </p>
                     <div className='mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap'>
-                        <a href='#talents' className='inline-flex items-center justify-center gap-2 rounded-full bg-[#1a3c2e] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-black/15 transition hover:bg-[#163326]'>
+                        <Link
+                            href='/talent'
+                            className='inline-flex items-center justify-center gap-2 rounded-md bg-[#1a3c2e] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-black/15 transition hover:bg-[#163326]'>
                             <Upload className='h-4 w-4' />
                             Upload Talent
-                        </a>
-                        <a href='#champions' className='inline-flex items-center justify-center gap-2 rounded-full bg-[#d4a017] px-5 py-3 text-sm font-semibold text-[#1a1a1a] shadow-lg shadow-black/15 transition hover:bg-[#c19113]'>
+                        </Link>
+                        <Link
+                            href='/votes'
+                            className='inline-flex items-center justify-center gap-2 rounded-md bg-[#d4a017] px-5 py-3 text-sm font-semibold text-[#1a1a1a] shadow-lg shadow-black/15 transition hover:bg-[#c19113]'>
                             <UserRound className='h-4 w-4' />
                             Vote Now
-                        </a>
-                        <a href='#talents' className='inline-flex items-center justify-center gap-2 rounded-full border border-white bg-transparent px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10'>
+                        </Link>
+                        <Link
+                            href='/quiz'
+                            className='inline-flex items-center justify-center gap-2 rounded-md border border-white bg-transparent px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10'>
                             <Users className='h-4 w-4' />
                             Join Quiz
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>

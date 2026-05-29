@@ -1,4 +1,5 @@
 import { Camera, Cpu, Shirt, Trophy } from 'lucide-react';
+import Link from 'next/link';
 
 import ChampionCard from '@/components/ui/ChampionCard';
 
@@ -46,9 +47,9 @@ export default function ChampionsRow() {
                         <h2 className='text-2xl font-bold text-[#1a3c2e]'>Naija Champions</h2>
                         <p className='mt-1 text-sm text-[#666666]'>Celebrating this week&apos;s most-voted stars.</p>
                     </div>
-                    <a href='#talents' className='text-sm font-medium text-[#1a3c2e] transition hover:underline'>
+                    <Link href='/votes' className='text-sm font-medium text-[#1a3c2e] transition hover:underline'>
                         View All →
-                    </a>
+                    </Link>
                 </div>
 
                 <div className='mt-6 overflow-x-auto pb-2'>

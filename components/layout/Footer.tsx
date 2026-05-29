@@ -1,4 +1,5 @@
 import IconButton from '@/components/ui/IconButton';
+import Link from 'next/link';
 import { Globe as GlobeIcon, Mail, Share2 } from 'lucide-react';
 
 export default function Footer() {
@@ -28,24 +29,24 @@ export default function Footer() {
                         <h3 className='mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#1a1a1a]'>Platform</h3>
                         <ul className='space-y-3 text-sm text-[#666666]'>
                             <li>
-                                <a className='transition hover:text-[#1a3c2e]' href='#champions'>
+                                <Link className='transition hover:text-[#1a3c2e]' href='/talent'>
                                     Talent Zone
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a className='transition hover:text-[#1a3c2e]' href='#champions'>
+                                <Link className='transition hover:text-[#1a3c2e]' href='/votes'>
                                     Naija Votes
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a className='transition hover:text-[#1a3c2e]' href='#champions'>
+                                <Link className='transition hover:text-[#1a3c2e]' href='/quiz'>
                                     Live Quiz
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a className='transition hover:text-[#1a3c2e]' href='#champions'>
+                                <Link className='transition hover:text-[#1a3c2e]' href='/icons'>
                                     Global Icons
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -54,14 +55,14 @@ export default function Footer() {
                         <h3 className='mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#1a1a1a]'>Company</h3>
                         <ul className='space-y-3 text-sm text-[#666666]'>
                             <li>
-                                <a className='transition hover:text-[#1a3c2e]' href='#top'>
+                                <Link className='transition hover:text-[#1a3c2e]' href='/talent'>
                                     About Us
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a className='transition hover:text-[#1a3c2e]' href='#top'>
+                                <Link className='transition hover:text-[#1a3c2e]' href='/arena'>
                                     Contact Support
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -71,21 +72,21 @@ export default function Footer() {
                     <div className='flex flex-col gap-4 text-xs text-[#666666] md:flex-row md:items-center md:justify-between'>
                         <p>© 2024 NAIJA VIBE. All rights reserved.</p>
                         <div className='flex flex-wrap gap-x-5 gap-y-2'>
-                            <a className='transition hover:text-[#1a3c2e]' href='#top'>
+                            <Link className='transition hover:text-[#1a3c2e]' href='/'>
                                 Cultural Heritage
-                            </a>
-                            <a className='transition hover:text-[#1a3c2e]' href='#top'>
+                            </Link>
+                            <Link className='transition hover:text-[#1a3c2e]' href='/talent'>
                                 Talent Submission
-                            </a>
-                            <a className='transition hover:text-[#1a3c2e]' href='#top'>
+                            </Link>
+                            <Link className='transition hover:text-[#1a3c2e]' href='/votes'>
                                 Privacy Policy
-                            </a>
-                            <a className='transition hover:text-[#1a3c2e]' href='#top'>
+                            </Link>
+                            <Link className='transition hover:text-[#1a3c2e]' href='/quiz'>
                                 Terms of Service
-                            </a>
-                            <a className='transition hover:text-[#1a3c2e]' href='#top'>
+                            </Link>
+                            <Link className='transition hover:text-[#1a3c2e]' href='/icons'>
                                 Platform Credits
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </div>
