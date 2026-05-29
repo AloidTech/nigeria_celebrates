@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Play } from 'lucide-react';
 
 import CategoryTabs from '@/components/ui/CategoryTabs';
@@ -48,12 +49,12 @@ export default function TalentZoneContent() {
                             Discover, share, and support the raw creativity, culture, and innovation driving Nigeria forward. Show the world what you&apos;ve got.
                         </p>
                     </div>
-                    <button
-                        type='button'
+                    <Link
+                        href='/arena'
                         className='inline-flex items-center justify-center gap-2 rounded-md bg-[#1A3C2E] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#142e23]'>
                         <Play className='h-4 w-4 fill-current' />
                         Upload Your Talent
-                    </button>
+                    </Link>
                 </div>
             </section>
 
