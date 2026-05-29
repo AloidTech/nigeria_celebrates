@@ -50,7 +50,7 @@ export default function TalentZoneContent() {
                         </p>
                     </div>
                     <Link
-                        href='/arena'
+                        href='/sign-in'
                         className='inline-flex items-center justify-center gap-2 rounded-md bg-[#1A3C2E] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#142e23]'>
                         <Play className='h-4 w-4 fill-current' />
                         Upload Your Talent

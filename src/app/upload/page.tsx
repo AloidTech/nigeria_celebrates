@@ -19,7 +19,7 @@ export default function UploadPage() {
                     <h1 className='text-4xl font-bold text-[#1A1A1A]'>Show the World Your Talent</h1>
                     <p className='mt-2 max-w-lg text-sm text-gray-600'>
                         Upload your entry for the{' '}
-                        <Link href='/arena' className='text-[#1A3C2E] underline transition hover:opacity-80'>
+                        <Link href='/sign-in' className='text-[#1A3C2E] underline transition hover:opacity-80'>
                             Naija Talent Zone Submission.
                         </Link>{' '}
                         Your journey to the global arena starts here.

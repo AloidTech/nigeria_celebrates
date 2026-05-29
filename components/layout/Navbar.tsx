@@ -32,11 +32,18 @@ export default function Navbar() {
                         </Link>
                     ))}
                 </nav>
-                <Link
-                    href='/talent'
-                    className='inline-flex items-center justify-center rounded-md bg-[#1a3c2e] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#153325]'>
-                    Join Now
-                </Link>
+                <div className='flex items-center gap-3'>
+                    <Link
+                        href='/sign-in'
+                        className='inline-flex items-center justify-center rounded-md border border-[#1a3c2e] px-5 py-2 text-sm font-semibold text-[#1a3c2e] transition hover:bg-[#1a3c2e] hover:text-white'>
+                        Login
+                    </Link>
+                    <Link
+                        href='/sign-up'
+                        className='inline-flex items-center justify-center rounded-md bg-[#1a3c2e] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#153325]'>
+                        Join Now
+                    </Link>
+                </div>
             </div>
         </header>
     );

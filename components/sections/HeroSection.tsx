@@ -24,7 +24,7 @@ export default function HeroSection() {
                     </p>
                     <div className='mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap'>
                         <Link
-                            href='/talent'
+                            href='/sign-in'
                             className='inline-flex items-center justify-center gap-2 rounded-md bg-[#1a3c2e] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-black/15 transition hover:bg-[#163326]'>
                             <Upload className='h-4 w-4' />
                             Upload Talent
