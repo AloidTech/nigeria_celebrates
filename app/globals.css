@@ -3,6 +3,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --correct_answer: #EEF4F0;
+  --wrong_answer: #F8F7F1;
+
 }
 
 @theme inline {
@@ -23,4 +26,60 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes digit-flip {
+  0% {
+    transform: rotateX(0deg);
+  }
+
+  100% {
+    transform: rotateX(-180deg);
+  }
+}
+
+
+.digit-card-flip {
+  animation: digit-flip 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-x-180 {
+  transform: rotateX(180deg);
+}
+
+.digit-card-inner {
+  transform-style: preserve-3d;
+}
+
+/* Premium White Variant Digit Cards */
+.digit-card-face {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 45%, #f4f4ee 100%);
+  border: 1px solid #e2e2d9;
+  color: #1a3c2e;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 24px rgba(26, 60, 46, 0.05);
+}
+
+
+.btn-clicked,
+.btn-animated {
+  @apply transition-all duration-90 ease-in hover:scale-102;
+}
+
+.btn-clicked {
+  @apply transition-all duration-80 active:scale-95;
 }
