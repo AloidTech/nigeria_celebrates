@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
+<<<<<<< HEAD
+    "target": "es2022",
+=======
     "target": "ES2017",
+>>>>>>> 1201daa5814bc0133a5438363ad4bb996c0443d2
     "lib": [
       "dom",
       "dom.iterable",
@@ -9,20 +13,41 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+<<<<<<< HEAD
+    "forceConsistentCasingInFileNames": true,
+=======
+>>>>>>> 1201daa5814bc0133a5438363ad4bb996c0443d2
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+<<<<<<< HEAD
+    "jsx": "preserve",
+    "jsxImportSource": "react",
+    "incremental": true,
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+=======
     "jsx": "react-jsx",
     "incremental": true,
     "baseUrl": ".",
     "ignoreDeprecations": "5.0",
+>>>>>>> 1201daa5814bc0133a5438363ad4bb996c0443d2
     "plugins": [
       {
         "name": "next"
       }
+<<<<<<< HEAD
+    ]
+=======
     ],
     "paths": {
       "@/*": [
@@ -30,14 +55,19 @@
         "./*"
       ]
     }
+>>>>>>> 1201daa5814bc0133a5438363ad4bb996c0443d2
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+<<<<<<< HEAD
+    ".next/types/**/*.ts"
+=======
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
+>>>>>>> 1201daa5814bc0133a5438363ad4bb996c0443d2
   ],
   "exclude": [
     "node_modules"
