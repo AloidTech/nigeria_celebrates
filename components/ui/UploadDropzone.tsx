@@ -10,6 +10,7 @@ const MAX_FILE_SIZE = 52_428_800;
 export type UploadDropzoneProps = {
     selectedCategory: string | null;
     className?: string;
+    onFileSelect?: (file: File) => void; // 👈 Hooked up the callback prop
 };
 
 function formatBytes(bytes: number) {
@@ -22,7 +23,7 @@ function getFileExtension(fileName: string) {
     return lastDotIndex >= 0 ? fileName.slice(lastDotIndex).toLowerCase() : '';
 }
 
-export default function UploadDropzone({ selectedCategory, className }: UploadDropzoneProps) {
+export default function UploadDropzone({ selectedCategory, className, onFileSelect }: UploadDropzoneProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [uploadProgress] = useState(45);
     const [fileName, setFileName] = useState<string | null>(null);
@@ -67,12 +68,17 @@ export default function UploadDropzone({ selectedCategory, className }: UploadDr
 
         setErrorMessage(null);
         setFileName(file.name);
+        
+        // 👈 Send the validated file up to the parent page!
+        if (onFileSelect) {
+            onFileSelect(file);
+        }
     }
 
     const borderClass = errorMessage ? 'border-red-400' : 'border-[#1A3C2E]';
     const containerClass = isDragging
-        ? `flex min-h-55 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed ${borderClass} bg-[#E4EFE8] p-12 text-center transition`
-        : `flex min-h-55 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed ${borderClass} bg-[#EEF4F0] p-12 text-center transition hover:bg-[#E4EFE8]`;
+        ? `flex min-h-55 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed ${borderClass} bg-[#E4EFE8] p-6 sm:p-12 text-center transition`
+        : `flex min-h-55 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed ${borderClass} bg-[#EEF4F0] p-6 sm:p-12 text-center transition hover:bg-[#E4EFE8]`;
 
     return (
         <div className={className}>
@@ -113,15 +119,19 @@ export default function UploadDropzone({ selectedCategory, className }: UploadDr
                 </div>
             </div>
 
-            <div className='mt-4 mb-1 flex items-center justify-between'>
-                <span className='text-sm font-semibold text-[#1A3C2E]'>Uploading...</span>
-                <span className='text-sm font-semibold text-[#1A3C2E]'>{uploadProgress}%</span>
-            </div>
-            <div className='h-1.5 w-full rounded-full bg-[#E0E0E0]'>
-                <div className='h-full w-[45%] rounded-full bg-[#1A3C2E]' />
-            </div>
+            {fileName && (
+                <>
+                    <div className='mt-4 mb-1 flex items-center justify-between'>
+                        <span className='text-sm font-semibold text-[#1A3C2E]'>File Ready...</span>
+                        <span className='text-sm font-semibold text-[#1A3C2E]'>100% Ready</span>
+                    </div>
+                    <div className='h-1.5 w-full rounded-full bg-[#E0E0E0]'>
+                        <div className='h-full w-full rounded-full bg-[#1A3C2E]' />
+                    </div>
+                    <p className='mt-3 text-sm text-[#1A3C2E]'>Selected file: {fileName}</p>
+                </>
+            )}
 
-            {fileName ? <p className='mt-3 text-sm text-[#1A3C2E]'>Selected file: {fileName}</p> : null}
             {errorMessage ? (
                 <p className='mt-2 flex items-center gap-1 text-sm text-red-500'>
                     <AlertCircle className='h-4 w-4' />

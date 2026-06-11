@@ -34,7 +34,7 @@ export default function CategoryTabs({ cards }: CategoryTabsProps) {
 
     return (
         <div>
-            <div className='flex gap-6 overflow-x-auto px-8 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
+            <div className='flex gap-6 overflow-x-auto px-4 py-4 sm:px-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
                 {tabs.map((tab) => {
                     const isActive = tab === activeTab;
 
@@ -54,7 +54,7 @@ export default function CategoryTabs({ cards }: CategoryTabsProps) {
                 })}
             </div>
 
-            <div className='grid grid-cols-1 gap-5 px-8 py-6 lg:grid-cols-4'>
+            <div className='grid grid-cols-1 gap-5 px-4 py-6 sm:grid-cols-2 sm:px-8 lg:grid-cols-3 xl:grid-cols-4'>
                 {visibleCards.map((card) => (
                     <TalentCard key={card.title} {...card} />
                 ))}
