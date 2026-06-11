@@ -52,8 +52,8 @@ export default function ChampionsRow() {
                     </Link>
                 </div>
 
-                <div className='mt-6 overflow-x-auto pb-2'>
-                    <div className='flex gap-4 pr-12 sm:pr-20 lg:pr-40'>
+                <div className='mt-6 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
+                    <div className='flex gap-4 pr-12 sm:pr-24'>
                         {champions.map((champion) => (
                             <ChampionCard key={champion.name} {...champion} />
                         ))}
