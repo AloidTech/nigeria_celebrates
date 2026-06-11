@@ -40,8 +40,9 @@ export default function VotesPage() {
             <section className='px-8 pb-6 pt-10'>
                 <div className='flex items-start justify-between gap-6'>
                     <div>
-                        <h1 className='text-4xl font-bold text-[#1A3C2E]'>Rising Stars</h1>
-                        <p className='mt-2 max-w-lg text-sm text-gray-600'>
+                        <div className='mb-3 inline-flex rounded-full bg-[#F0F0EC] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#8a845f]'>Naija Votes</div>
+                        <h1 className='max-w-2xl text-4xl font-bold leading-tight text-[#1A3C2E] sm:text-5xl'>Rising Stars</h1>
+                        <p className='mt-3 max-w-xl text-sm leading-6 text-gray-600'>
                             Discover the next generation of Nigerian excellence. From Afrobeats prodigies to tech innovators, vote for your favorite creators.
                         </p>
                     </div>

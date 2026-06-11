@@ -13,12 +13,12 @@ export default function HeroSection() {
                 <div className='absolute right-[7%] bottom-[16%] h-40 w-28 rounded-[50%_50%_42%_58%/34%_40%_60%_66%] bg-black/30' />
             </div>
             <div className='relative mx-auto flex min-h-[70vh] max-w-7xl items-end px-4 py-10 sm:px-6 lg:px-8'>
-                <div className='max-w-md pb-8 sm:pb-12 lg:pb-14'>
+                <div className='w-full max-w-md pb-8 sm:pb-12 lg:pb-14'>
                     <div className='mb-3 inline-flex items-center gap-2 rounded-full bg-[#d4a017] px-3 py-1 text-xs font-semibold text-[#1a1a1a] shadow-sm'>
                         <Sparkles className='h-3.5 w-3.5 fill-current' />
                         EDITOR&apos;S CHOICE
                     </div>
-                    <h1 className='max-w-md text-4xl font-bold leading-tight text-white sm:text-5xl'>Celebrate the Rhythm of Our Nation</h1>
+                    <h1 className='text-3xl font-bold leading-tight text-white sm:text-5xl'>Celebrate the Rhythm of Our Nation</h1>
                     <p className='mt-3 max-w-xs text-sm leading-6 text-white/75'>
                         Join the largest digital stage showcasing Nigeria&apos;s undisputed talent. Upload, Vote, and Win big.
                     </p>

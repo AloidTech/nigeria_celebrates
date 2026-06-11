@@ -23,6 +23,89 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Supabase Setup
+
+1. Install dependencies (already installed in this workspace):
+
+```bash
+npm install @supabase/supabase-js @supabase/ssr
+```
+
+2. Add environment variables in `.env.local` (copy from `.env.example`):
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+3. Use the helper clients:
+
+- Browser/client components: `lib/supabase/client.ts`
+- Server components/route handlers: `lib/supabase/server.ts`
+
+## Query Basics
+
+### Server-side query (recommended for secure reads/writes)
+
+```ts
+import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getCategoryChampions } from "@/lib/supabase/queries";
+
+export async function loadChampions() {
+	const supabase = getSupabaseServerClient();
+	return getCategoryChampions(supabase);
+}
+```
+
+### Client-side query (for user-facing live data)
+
+```ts
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+
+export async function loadLiveLeaderboard() {
+	const supabase = getSupabaseBrowserClient();
+
+	const { data, error } = await supabase
+		.from("leaderboard_entries")
+		.select("quiz_id,user_id,score,rank")
+		.order("score", { ascending: false })
+		.limit(20);
+
+	if (error) throw error;
+	return data;
+}
+```
+
+### SQL aggregation by category using `quiz_id`
+
+Because `leaderboard_entries` stores `quiz_id`, category can be derived by joining to `quizzes`:
+
+```sql
+with per_user_category as (
+	select
+		q.category,
+		le.user_id,
+		max(le.score) as top_score
+	from leaderboard_entries le
+	join quizzes q on q.id = le.quiz_id
+	group by q.category, le.user_id
+), ranked as (
+	select
+		category,
+		user_id,
+		top_score,
+		row_number() over (
+			partition by category
+			order by top_score desc
+		) as rn
+	from per_user_category
+)
+select category, user_id, top_score
+from ranked
+where rn = 1;
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

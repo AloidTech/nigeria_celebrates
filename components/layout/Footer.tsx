@@ -4,7 +4,7 @@ import { Globe as GlobeIcon, Mail, Share2 } from 'lucide-react';
 
 export default function Footer() {
     return (
-        <footer className='border-t border-gray-200 bg-[#f5f5f0] px-8 pb-6 pt-12'>
+        <footer className='border-t border-gray-200 bg-[#f5f5f0] px-4 pb-6 pt-12 sm:px-8'>
             <div className='mx-auto max-w-7xl'>
                 <div className='grid gap-10 md:grid-cols-3'>
                     <div className='max-w-sm'>

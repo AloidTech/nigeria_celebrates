@@ -84,12 +84,12 @@ export default function TalentZoneContent() {
 
     return (
         <>
-            <section className='bg-[#F5F5F0] px-8 pb-4 pt-8'>
+            <section className='bg-[#F5F5F0] px-4 pb-4 pt-8 sm:px-8'>
                 <LiveBadge />
-                <div className='flex items-start justify-between gap-6'>
-                    <div>
-                        <h1 className='text-5xl font-bold text-[#1A3C2E]'>Naija Talent Zone</h1>
-                        <p className='mt-2 max-w-lg text-sm text-gray-600'>
+                <div className='flex flex-col items-start justify-between gap-6 md:flex-row md:items-center'>
+                    <div className='max-w-2xl'>
+                        <h1 className='text-3xl font-bold text-[#1A3C2E] sm:text-5xl'>Naija Talent Zone</h1>
+                        <p className='mt-2 text-sm text-gray-600 sm:max-w-lg'>
                             Discover, share, and support the raw creativity, culture, and innovation driving Nigeria forward. Show the world what you&apos;ve got.
                         </p>
                     </div>

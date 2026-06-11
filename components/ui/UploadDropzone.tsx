@@ -77,8 +77,8 @@ export default function UploadDropzone({ selectedCategory, className, onFileSele
 
     const borderClass = errorMessage ? 'border-red-400' : 'border-[#1A3C2E]';
     const containerClass = isDragging
-        ? `flex min-h-55 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed ${borderClass} bg-[#E4EFE8] p-12 text-center transition`
-        : `flex min-h-55 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed ${borderClass} bg-[#EEF4F0] p-12 text-center transition hover:bg-[#E4EFE8]`;
+        ? `flex min-h-55 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed ${borderClass} bg-[#E4EFE8] p-6 sm:p-12 text-center transition`
+        : `flex min-h-55 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed ${borderClass} bg-[#EEF4F0] p-6 sm:p-12 text-center transition hover:bg-[#E4EFE8]`;
 
     return (
         <div className={className}>
