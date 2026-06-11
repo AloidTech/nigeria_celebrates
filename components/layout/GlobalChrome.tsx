@@ -12,7 +12,7 @@ export default function GlobalChrome({ children }: { children: React.ReactNode }
     const router = useRouter();
     const pathname = usePathname();
     const isAuthRoute = authRoutes.some((route) => pathname?.startsWith(route));
-    const showBackButton = pathname !== '/';
+    const showBackButton = pathname == '/quiz/weekly';
 
     function handleBackClick() {
         if (window.history.length > 1) {
