@@ -26,13 +26,13 @@ export default function TalentGrid() {
                 <h2 className='text-3xl font-bold text-[#1a3c2e]'>Explore Our Talents</h2>
                 <p className='mt-2 mb-10 text-sm text-[#666666]'>Discover the diverse excellence of Nigeria across eleven distinct domains.</p>
 
-                <div className='grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6'>
+                <div className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'>
                     {talentsRowOne.map((item) => (
                         <TalentGridTile key={item.label} {...item} />
                     ))}
                 </div>
 
-                <div className='mt-8 grid grid-cols-2 gap-4 md:grid-cols-5 lg:max-w-none lg:grid-cols-5'>
+                <div className='mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'>
                     {talentsRowTwo.map((item) => (
                         <TalentGridTile key={item.label} {...item} />
                     ))}

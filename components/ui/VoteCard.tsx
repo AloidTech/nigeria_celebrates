@@ -50,9 +50,9 @@ export default function VoteCard({ category, name, description, votes, progress 
         <article className='flex flex-col overflow-hidden rounded-xl bg-white shadow-md lg:flex-row'>
             <div className='w-full shrink-0 bg-gray-300 lg:w-1/2'>
                 {/* Media section */}
-                <div className='h-56 w-full bg-[linear-gradient(180deg,rgba(26,60,46,0.18),rgba(0,0,0,0.1)),radial-gradient(circle_at_30%_20%,rgba(212,160,23,0.35),transparent_28%),radial-gradient(circle_at_70%_30%,rgba(26,60,46,0.3),transparent_24%)] lg:h-full lg:min-h-87.5' />
+                <div className='h-48 w-full bg-[linear-gradient(180deg,rgba(26,60,46,0.18),rgba(0,0,0,0.1)),radial-gradient(circle_at_30%_20%,rgba(212,160,23,0.35),transparent_28%),radial-gradient(circle_at_70%_30%,rgba(26,60,46,0.3),transparent_24%)] sm:h-64 lg:h-full lg:min-h-87.5' />
             </div>
-            <div className='flex min-w-0 flex-1 flex-col justify-between p-5 sm:p-6'>
+            <div className='flex min-w-0 flex-1 flex-col justify-between p-5'>
                 <div>
                     <div className='mb-3 w-fit rounded-full bg-[#F0F0EC] px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-gray-500'>{category}</div>
                     <h3 className='text-xl font-bold leading-tight text-[#1A1A1A] sm:text-2xl'>{name}</h3>
