@@ -17,7 +17,7 @@ import type { LucideIcon } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getShortQuizByCategory } from "@/lib/supabase/queries";
 import type { QuizCategory } from "@/lib/supabase/queries";
-import type { question } from "@/lib/database_types/quiz_types";
+import type { QuestionWithOptions } from "@/lib/database_types/quiz_types";
 
 import ChampionCard from "@/components/ui/ChampionCard";
 import RankCard from "@/components/ui/RankCard";
@@ -158,9 +158,13 @@ function getCountdownParts(targetDate: Date) {
 }
 
 export default function QuizPage() {
-  const [overlayState, setOverlayState] = useState<"start" | "category" | "none">("start");
-  const [activeCategory, setActiveCategory] = useState<QuizCategory | null>(null);
-  const [loadedQuestions, setLoadedQuestions] = useState<question[]>([]);
+  const [overlayState, setOverlayState] = useState<
+    "start" | "category" | "none" | "upcoming"
+  >("start");
+  const [activeCategory, setActiveCategory] = useState<QuizCategory | null>(
+    null,
+  );
+  const [loadedQuestions, setLoadedQuestions] = useState<QuestionWithOptions[]>([]);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [nextWeeklyQuizRemaining, setNextWeeklyQuizRemaining] =
     useState<CountdownParts>(weeklyQuizFallbackCountdown);
@@ -182,33 +186,24 @@ export default function QuizPage() {
   async function handleSelectCategory(category: QuizCategory) {
     setActiveCategory(category);
     setIsLoadingQuestions(true);
-    let supabaseError: any = null;
-    let fetched: question[] = [];
 
     try {
-      const supabase = getSupabaseBrowserClient();
-      fetched = await getShortQuizByCategory(supabase, category);
-    } catch (err) {
-      supabaseError = err;
-      try {
-        // Fall back to loading dummy/local questions using null client
-        fetched = await getShortQuizByCategory(null as any, category);
-      } catch (fallbackErr) {
-        console.error("Failed to load fallback questions:", fallbackErr);
+      const supabase = getSupabaseBrowserClient()!;
+      if (!supabase) throw new Error("No supabase client!");
+      
+      const fetched = await getShortQuizByCategory(supabase, category);
+      
+      if (fetched && fetched.length > 0) {
+        setLoadedQuestions(fetched);
+        setOverlayState("none");
+      } else {
+        setOverlayState("upcoming");
       }
-    }
-
-    if (fetched && fetched.length > 0) {
-      setLoadedQuestions(fetched);
-      setOverlayState("none");
-    }
-
-    setIsLoadingQuestions(false);
-
-    if (supabaseError) {
-      // Log and throw the connection/credentials error after loading fallback questions
-      console.error("Supabase client error, loaded fallback questions:", supabaseError);
-      throw supabaseError;
+    } catch (err) {
+      console.error("Failed to fetch questions:", err);
+      setOverlayState("upcoming");
+    } finally {
+      setIsLoadingQuestions(false);
     }
   }
 
@@ -292,7 +287,10 @@ export default function QuizPage() {
               <div className="flex flex-wrap gap-3">
                 {nextWeeklyQuizRemaining.days > 0 && (
                   <CountdownFlipCard
-                    value={String(nextWeeklyQuizRemaining.days).padStart(2, "0")}
+                    value={String(nextWeeklyQuizRemaining.days).padStart(
+                      2,
+                      "0",
+                    )}
                     label="Days"
                   />
                 )}
@@ -301,7 +299,10 @@ export default function QuizPage() {
                   label="Hours"
                 />
                 <CountdownFlipCard
-                  value={String(nextWeeklyQuizRemaining.minutes).padStart(2, "0")}
+                  value={String(nextWeeklyQuizRemaining.minutes).padStart(
+                    2,
+                    "0",
+                  )}
                   label="Minutes"
                 />
               </div>
@@ -344,7 +345,6 @@ export default function QuizPage() {
 
                 {/* Transparent and blurred overlay */}
                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#0A2818]/55 backdrop-blur-[3px] p-6 text-center transition-all duration-300">
-
                   {overlayState === "start" && (
                     <div className="relative z-10 max-w-lg space-y-6 animate-in fade-in zoom-in-95 duration-500">
                       <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-[#D4A017]">
@@ -355,7 +355,8 @@ export default function QuizPage() {
                         Your Next
                       </h2>
                       <p className="text-sm text-white/70 sm:text-base">
-                        Select your pathway to test your knowledge of Nigeria&apos;s music, film, geography, and art.
+                        Select your pathway to test your knowledge of
+                        Nigeria&apos;s music, film, geography, and art.
                       </p>
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                         <button
@@ -392,7 +393,8 @@ export default function QuizPage() {
                           Select Category
                         </h2>
                         <p className="text-sm text-white/75 max-w-md mx-auto">
-                          Pick a topic below to fetch your short quiz session questions.
+                          Pick a topic below to fetch your short quiz session
+                          questions.
                         </p>
                       </div>
 
@@ -420,6 +422,30 @@ export default function QuizPage() {
                           })}
                         </div>
                       )}
+                    </div>
+                  {overlayState === "upcoming" && (
+                    <div className="relative z-10 w-full max-w-2xl space-y-8 animate-in fade-in zoom-in-95 duration-400">
+                      <button
+                        type="button"
+                        onClick={() => setOverlayState("category")}
+                        className="absolute left-0 -top-12 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-white/60 hover:text-white transition"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Categories
+                      </button>
+
+                      <div className="space-y-4 pt-4 text-center">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#D4A017] mb-2">
+                          <Crown className="h-4 w-4 fill-current text-[#D4A017]" />
+                          Coming Soon
+                        </div>
+                        <h2 className="text-3xl font-black text-white sm:text-4xl">
+                          No Active Questions
+                        </h2>
+                        <p className="text-sm text-white/75 max-w-md mx-auto leading-relaxed">
+                          Our editors are currently curating the next official short trivia challenge for this category. Check back shortly!
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -2,57 +2,59 @@
 
 import React, { useEffect, useState } from "react";
 import { CheckCircle2, Circle, Medal, Gauge, ShieldCheck, ArrowRight } from "lucide-react";
-import type { question, categories, difficulty_level } from "@/lib/database_types/quiz_types";
+import type { Question, Option, QuizCategory, DifficultyLevel } from "@/lib/database_types/quiz_types";
 
-type DemoQuestion = question & {
-  selectId: string; // The option ID the demo will automatically select
+type DemoQuestion = Omit<Question, "id"> & {
+  id: string;
+  options: Array<{ id: string; option_text: string }>;
+  selectId: string;
 };
 
 const demoQuestions: DemoQuestion[] = [
   {
-    _id: "m1",
+    id: "m1",
     question_text: "Which artist popularized the global breakout hit “One Dance”?",
     options: [
-      { _id: "a", option_text: "Wizkid" },
-      { _id: "b", option_text: "Olamide" },
-      { _id: "c", option_text: "Burna Boy" },
-      { _id: "d", option_text: "Flavour" },
+      { id: "a", option_text: "Wizkid" },
+      { id: "b", option_text: "Olamide" },
+      { id: "c", option_text: "Burna Boy" },
+      { id: "d", option_text: "Flavour" },
     ],
     correct_option_id: "a",
     selectId: "a", // Correct selection
     explanation: "Wizkid was featured on “One Dance,” helping push the record into global pop culture.",
-    difficulty: "easy" as difficulty_level,
-    category: "music" as categories,
+    difficulty: "easy" as DifficultyLevel,
+    category: "music" as QuizCategory,
   },
   {
-    _id: "f1",
+    id: "f1",
     question_text: "Which movie franchise is best known for the character Ebere, the detective from Lagos?",
     options: [
-      { _id: "a", option_text: "Living in Bondage" },
-      { _id: "b", option_text: "The Figurine" },
-      { _id: "c", option_text: "King of Boys" },
-      { _id: "d", option_text: "Citation" },
+      { id: "a", option_text: "Living in Bondage" },
+      { id: "b", option_text: "The Figurine" },
+      { id: "c", option_text: "King of Boys" },
+      { id: "d", option_text: "Citation" },
     ],
     correct_option_id: "c",
     selectId: "a", // Wrong selection (selecting option A instead of C)
     explanation: "King of Boys is the correct pick for this crime-thriller style clue.",
-    difficulty: "moderate" as difficulty_level,
-    category: "movies" as categories,
+    difficulty: "moderate" as DifficultyLevel,
+    category: "movies" as QuizCategory,
   },
   {
-    _id: "g3",
+    id: "g3",
     question_text: "What is the fastest way to score bonus points in this quiz session?",
     options: [
-      { _id: "a", option_text: "Skip every question" },
-      { _id: "b", option_text: "Answer correctly on the first try" },
-      { _id: "c", option_text: "Wait until time runs out" },
-      { _id: "d", option_text: "Refresh the page" },
+      { id: "a", option_text: "Skip every question" },
+      { id: "b", option_text: "Answer correctly on the first try" },
+      { id: "c", option_text: "Wait until time runs out" },
+      { id: "d", option_text: "Refresh the page" },
     ],
     correct_option_id: "b",
     selectId: "b", // Correct selection
     explanation: "Correct first attempts preserve your score and keep your streak active.",
-    difficulty: "easy" as difficulty_level,
-    category: "geography" as categories,
+    difficulty: "easy" as DifficultyLevel,
+    category: "geography" as QuizCategory,
   },
 ];
 
@@ -93,10 +95,10 @@ export default function QuizDemoBackground() {
   const questionProgress = ((currentIdx + (isAnswered ? 1 : 0)) / totalQuestions) * 100;
 
   const correctOption = currentQuestion.options.find(
-    (option) => option._id === currentQuestion.correct_option_id,
+    (option) => option.id === currentQuestion.correct_option_id,
   );
   const selectedOption = currentQuestion.options.find(
-    (option) => option._id === selectedId,
+    (option) => option.id === selectedId,
   );
 
   return (
@@ -126,14 +128,14 @@ export default function QuizDemoBackground() {
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {currentQuestion.options.map((option, index) => {
           const optionKey = String.fromCharCode(65 + index);
-          const isSelected = selectedId === option._id;
-          const isCorrect = option._id === currentQuestion.correct_option_id;
+          const isSelected = selectedId === option.id;
+          const isCorrect = option.id === currentQuestion.correct_option_id;
           const isWrongSelection = isAnswered && isSelected && !isCorrect;
           const showResolvedState = isAnswered && (isCorrect || isSelected);
 
           return (
             <div
-              key={option._id}
+              key={option.id}
               className={`flex min-h-24 items-start gap-4 rounded-2xl border p-4 text-left transition-all duration-300 ${
                 showResolvedState
                   ? isCorrect
@@ -191,7 +193,7 @@ export default function QuizDemoBackground() {
             </div>
             <p className="mt-1 text-sm text-gray-600">
               {isAnswered
-                ? selectedOption?._id === currentQuestion.correct_option_id
+                ? selectedOption?.id === currentQuestion.correct_option_id
                   ? "Correct. You kept your streak alive."
                   : "Not quite. Review the explanation before moving on."
                 : "Choose one answer and submit to lock in your score."}

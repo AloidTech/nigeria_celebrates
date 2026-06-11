@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
-  Crown,
   Sparkles,
   Trophy,
   Clapperboard,
@@ -15,9 +14,9 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getWeeklyQuiz } from "@/lib/supabase/queries";
-import type { question } from "@/lib/database_types/quiz_types";
-import QuizGameplay from "@/components/sections/QuizGameplay";
+import type { QuestionWithOptions } from "@/lib/database_types/quiz_types";
+import WeeklyQuizGameplay from "@/components/sections/WeeklyQuizGameplay";
+import { useLiveWeeklyQuiz, getWeeklyQuestions } from "@/lib/supabase/queries";
 
 type QuizCategory = "music" | "movies" | "geography" | "art";
 
@@ -87,15 +86,32 @@ const defaultVisual: CategoryVisual = {
 };
 
 export default function WeeklyQuizPage() {
-  const [questions, setQuestions] = useState<question[]>([]);
+  const [questions, setQuestions] = useState<QuestionWithOptions[]>([]);
+  const [quizId, setQuizId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { quizData, loading: quizLoading } = useLiveWeeklyQuiz();
 
   useEffect(() => {
     async function load() {
+      if (quizLoading) {
+        setIsLoading(true);
+        return;
+      }
+      if (!quizData) {
+        setIsLoading(false);
+        return;
+      }
       try {
         const supabase = getSupabaseBrowserClient();
-        const data = await getWeeklyQuiz(supabase);
-        setQuestions(data);
+        if (!supabase) throw new Error("No supabase client!");
+
+        setQuizId(quizData.id);
+
+        // 2. Fetch questions for this weekly quiz category
+        const { quizQuestions, err } = await getWeeklyQuestions(supabase);
+
+        if (err) throw err;
+        setQuestions(quizQuestions);
       } catch (err) {
         console.error("Failed to load weekly quiz:", err);
       } finally {
@@ -103,7 +119,7 @@ export default function WeeklyQuizPage() {
       }
     }
     load();
-  }, []);
+  }, [quizData, quizLoading]);
 
   // Derive the category of the weekly quiz if questions exist
   const derivedCategory = questions.length > 0 ? questions[0].category : null;
@@ -189,7 +205,7 @@ export default function WeeklyQuizPage() {
                 Weekly Trivia Challenge
               </h1>
               <p className="mt-4 text-sm leading-6 text-white/70 sm:text-base">
-                Compete against the community in this week's dedicated {visual.displayLabel.toLowerCase()} challenge. Answer these questions accurately to lock in your score on the live leaderboard.
+                Compete against the community in this week&apos;s dedicated {visual.displayLabel.toLowerCase()} challenge. Answer these questions accurately to lock in your score on the live leaderboard.
               </p>
             </div>
           </div>
@@ -207,15 +223,11 @@ export default function WeeklyQuizPage() {
                 </p>
               </div>
             ) : (
-              <QuizGameplay
+              <WeeklyQuizGameplay
                 questions={questions}
-                quizType="weekly"
+                quizId={quizId || ""}
                 onRestart={() => {
-                  // Re-fetch weekly quiz or reset states
-                  setIsLoading(true);
-                  getWeeklyQuiz(getSupabaseBrowserClient())
-                    .then((data) => setQuestions(data))
-                    .finally(() => setIsLoading(false));
+                  window.location.reload();
                 }}
               />
             )}
