@@ -1,5 +1,7 @@
 // lib/utils/date.ts
 
+export const toIsoFromInput = (birthday: string) => new Date(birthday).toISOString();
+
 /**
  * Parses any date input (Date object, ISO string, or timestamp) into a valid JS Date object.
  * Returns null if the input is invalid.
@@ -16,7 +18,7 @@ export function parseDate(dateInput: Date | string | number | null | undefined):
 export function formatForDisplay(dateInput: Date | string | number | null | undefined): string {
   const d = parseDate(dateInput);
   if (!d) return 'N/A';
-  
+
   return d.toLocaleString('en-NG', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -48,15 +50,15 @@ export function formatForInput(dateInput: Date | string | number | null | undefi
 export function calculateDuration(startInput: Date | string | null, endInput: Date | string | null): string {
   const start = parseDate(startInput);
   const end = parseDate(endInput);
-  
+
   if (!start || !end) return 'N/A';
-  
+
   const diffMs = end.getTime() - start.getTime();
   if (diffMs <= 0) return '0h';
-  
+
   const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
   const diffHours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-  
+
   if (diffDays > 0) {
     return `${diffDays}d ${diffHours}h`;
   }

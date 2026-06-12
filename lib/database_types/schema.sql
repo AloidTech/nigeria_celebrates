@@ -36,6 +36,22 @@ END $$;
 -- TABLES
 -- ----------------------------------------------------------------------------
 
+-- -- AUTH
+-- ----------------------------------------------------------------------------
+
+-- 2. PROFILE
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    birthday TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- -- QUIZ
+-- ----------------------------------------------------------------------------
+
 -- 1. GENERAL SETTINGS
 CREATE TABLE IF NOT EXISTS general_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -51,6 +67,7 @@ CREATE TABLE IF NOT EXISTS general_settings (
     weekly_end_time TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '8 days',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
 
 -- 2. QUIZZES
 CREATE TABLE IF NOT EXISTS quizzes (

@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import AuthCard from '@/components/auth/AuthCard';
 import AuthDivider from '@/components/auth/AuthDivider';
 import EmailInput from '@/components/auth/EmailInput';
 import GoogleButton from '@/components/auth/GoogleButton';
 import PasswordInput from '@/components/auth/PasswordInput';
-import { storeAuthUser } from '@/lib/firebase/AuthContext';
+import { getUser, signIn } from '@/lib/supabase/client';
+import { supabase } from '@/supabase';
 
 export default function SignInPage() {
     const router = useRouter();
@@ -18,7 +19,16 @@ export default function SignInPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    async function handleSignIn() {
+    useEffect(() => {
+        getUser(supabase).then(({ user, loading, error }) => {
+            if (user && !loading && !error) {
+                router.push("/")
+            }
+        });
+    }, [])
+
+    async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
         setLoading(true);
         setError('');
 
@@ -27,25 +37,28 @@ export default function SignInPage() {
             setLoading(false);
             return;
         }
+        const norm = (n: any) => String(n).trim();
 
-        setTimeout(() => {
-            storeAuthUser({
-                displayName: email.split('@')[0] || 'Creator',
-                email
-            });
-            router.push('/arena');
-        }, 450);
+        const { data, error } = await signIn(supabase, norm(email), norm(password));
+        if (error) {
+            setError(error.message);
+            setLoading(false);
+            return;
+        }
+
+        router.push("/")
+        // router.back()
+        setLoading(false);
     }
 
     return (
         <AuthCard>
-            <div className='space-y-4'>
+            <form onSubmit={(e) => handleSignIn(e)} className='space-y-4'>
                 <EmailInput value={email} onChange={setEmail} />
                 <PasswordInput value={password} onChange={setPassword} showForgot />
                 {error ? <p className='text-center text-sm text-red-500'>{error}</p> : null}
                 <button
-                    type='button'
-                    onClick={handleSignIn}
+                    type='submit'
                     disabled={loading}
                     className='mt-2 w-full rounded-xl bg-[#1A3C2E] py-3.5 text-sm font-semibold text-white transition hover:bg-[#142e23] disabled:cursor-not-allowed disabled:opacity-60'>
                     {loading ? 'Signing in...' : 'Sign In'}
@@ -58,7 +71,7 @@ export default function SignInPage() {
                         Sign Up
                     </Link>
                 </p>
-            </div>
+            </form>
         </AuthCard>
     );
 }

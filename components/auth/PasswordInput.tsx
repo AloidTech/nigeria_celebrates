@@ -1,5 +1,6 @@
 'use client';
 
+import { checkPassword } from '@/lib/utils/authUtils';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 
@@ -11,6 +12,8 @@ type PasswordInputProps = {
 
 export default function PasswordInput({ value, onChange, showForgot = true }: PasswordInputProps) {
     const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState('');
+
 
     return (
         <div>
@@ -27,6 +30,7 @@ export default function PasswordInput({ value, onChange, showForgot = true }: Pa
                     type={showPassword ? 'text' : 'password'}
                     value={value}
                     onChange={(event) => onChange(event.target.value)}
+                    onBlur={(event) => setError(checkPassword(event.target.value))}
                     placeholder='Enter your password'
                     className='w-full rounded-xl border border-black/10 bg-white px-4 py-3 pr-12 text-sm text-black placeholder:text-slate-500 outline-none transition focus:border-[#1A3C2E] focus:ring-2 focus:ring-[#1A3C2E]/20'
                 />
@@ -37,6 +41,7 @@ export default function PasswordInput({ value, onChange, showForgot = true }: Pa
                     aria-label={showPassword ? 'Hide password' : 'Show password'}>
                     {showPassword ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
                 </button>
+
             </div>
         </div>
     );

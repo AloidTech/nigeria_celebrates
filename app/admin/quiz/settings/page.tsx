@@ -208,8 +208,23 @@ export default function QuizSettingsPage() {
                     fetchedStartDay = gsData.start_day ?? 1;
                     setStartDay(fetchedStartDay);
 
-                    // Extract HH:MM from the ISO TIMESTAMPTZ values
-                    const extractTime = (ts: string) => new Date(ts).toISOString().substring(11, 16);
+                    // Extract HH:MM from the ISO TIMESTAMPTZ values or time-only strings safely
+                    const extractTime = (ts: string) => {
+                        if (!ts) return '09:00';
+                        const timeMatch = ts.match(/^(\d{2}):(\d{2})/);
+                        if (timeMatch) {
+                            return `${timeMatch[1]}:${timeMatch[2]}`;
+                        }
+                        const d = new Date(ts);
+                        if (isNaN(d.getTime())) {
+                            const match = ts.match(/(\d{2}):(\d{2})/);
+                            if (match) {
+                                return `${match[1]}:${match[2]}`;
+                            }
+                            return '09:00';
+                        }
+                        return d.toISOString().substring(11, 16);
+                    };
                     fetchedWeeklyStart = gsData.weekly_start_time ? extractTime(gsData.weekly_start_time) : '09:00';
                     fetchedWeeklyEnd = gsData.weekly_end_time ? extractTime(gsData.weekly_end_time) : '17:00';
                     console.log("fetchedWeeklyStart", fetchedWeeklyStart, "fetchedWeeklyEnd", fetchedWeeklyEnd);
