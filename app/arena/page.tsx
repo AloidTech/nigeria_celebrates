@@ -1,5 +1,5 @@
 'use client';
-
+import toast from 'react-hot-toast';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -54,12 +54,12 @@ function ArenaPageContent() {
             setLoadingData(true);
             try {
                 const supabase = getSupabaseBrowserClient();
-                
+
                 // Fetch uploads
                 const dbUploads = await getUploadsById(supabase, userId);
-                
+
                 // Map database submissions to ArenaSubmission format
-                const mappedUploads: ArenaSubmission[] = await Promise.all(
+                const mappedUploads = await Promise.all(
                     dbUploads.map(async (sub) => {
                         // Fetch vote count for this specific upload
                         const { count: voteCount } = await supabase
@@ -95,7 +95,7 @@ function ArenaPageContent() {
                     rank: totalVotesCount >= 50 ? '#3' : totalVotesCount >= 20 ? '#8' : '#12'
                 });
             } catch (error) {
-                console.error('Error fetching arena data:', error);
+                toast.error('Could not load arena data right now.');
             } finally {
                 setLoadingData(false);
             }
@@ -139,7 +139,7 @@ function ArenaPageContent() {
                     <div className='flex-1 text-center md:text-left pt-2'>
                         <h1 className='text-3xl font-bold text-[#1A1A1A]'>{displayName}</h1>
                         <p className='text-sm text-gray-500 font-semibold mt-1.5'>{handle}</p>
-                        
+
                         <div className='mt-2.5 text-xs text-gray-400 flex flex-wrap items-center justify-center md:justify-start gap-1 font-medium'>
                             <span>More about this creator</span>
                             <span className='cursor-pointer text-gray-600 hover:text-black transition-colors font-bold'>...more</span>
@@ -169,26 +169,26 @@ function ArenaPageContent() {
 
             {/* Overview Stats */}
             <section className='mt-8 max-w-7xl mx-auto px-8 grid grid-cols-1 gap-4 md:grid-cols-3'>
-                <ArenaSummaryCard 
-                    variant='dark' 
-                    icon={<Upload className='h-8 w-8' />} 
-                    value={loadingData ? <div className='h-8 w-12 skeleton-premium-bar bg-white/20' /> : String(stats.totalUploads)} 
-                    label='Total Uploads' 
-                    sublabel='Across all categories' 
+                <ArenaSummaryCard
+                    variant='dark'
+                    icon={<Upload className='h-8 w-8' />}
+                    value={loadingData ? <div className='h-8 w-12 skeleton-premium-bar bg-white/20' /> : String(stats.totalUploads)}
+                    label='Total Uploads'
+                    sublabel='Across all categories'
                 />
-                <ArenaSummaryCard 
-                    variant='light' 
-                    icon={<ThumbsUp className='h-8 w-8' />} 
-                    value={loadingData ? <div className='h-8 w-16 skeleton-premium-bar bg-black/10' /> : stats.totalVotes >= 1000 ? `${(stats.totalVotes / 1000).toFixed(1)}k` : String(stats.totalVotes)} 
-                    label='Total Votes' 
-                    sublabel='+12 this week' 
+                <ArenaSummaryCard
+                    variant='light'
+                    icon={<ThumbsUp className='h-8 w-8' />}
+                    value={loadingData ? <div className='h-8 w-16 skeleton-premium-bar bg-black/10' /> : stats.totalVotes >= 1000 ? `${(stats.totalVotes / 1000).toFixed(1)}k` : String(stats.totalVotes)}
+                    label='Total Votes'
+                    sublabel='+12 this week'
                 />
-                <ArenaSummaryCard 
-                    variant='light' 
-                    icon={<Trophy className='h-8 w-8' />} 
-                    value={loadingData ? <div className='h-8.5 w-16 skeleton-premium-bar bg-black/10' /> : stats.rank} 
-                    label='Current Rank' 
-                    sublabel='Top 10% of creators' 
+                <ArenaSummaryCard
+                    variant='light'
+                    icon={<Trophy className='h-8 w-8' />}
+                    value={loadingData ? <div className='h-8.5 w-16 skeleton-premium-bar bg-black/10' /> : stats.rank}
+                    label='Current Rank'
+                    sublabel='Top 10% of creators'
                 />
             </section>
 
@@ -201,8 +201,8 @@ function ArenaPageContent() {
                             type='button'
                             onClick={() => setActiveTab('published')}
                             className={`pb-3.5 text-xs font-extrabold uppercase tracking-widest transition-all relative ${
-                                activeTab === 'published' 
-                                    ? 'text-black border-b-2 border-black -mb-[1px]' 
+                                activeTab === 'published'
+                                    ? 'text-black border-b-2 border-black -mb-[1px]'
                                     : 'text-gray-400 hover:text-gray-600'
                             }`}
                         >
@@ -212,8 +212,8 @@ function ArenaPageContent() {
                             type='button'
                             onClick={() => setActiveTab('under_review')}
                             className={`pb-3.5 text-xs font-extrabold uppercase tracking-widest transition-all relative ${
-                                activeTab === 'under_review' 
-                                    ? 'text-black border-b-2 border-black -mb-[1px]' 
+                                activeTab === 'under_review'
+                                    ? 'text-black border-b-2 border-black -mb-[1px]'
                                     : 'text-gray-400 hover:text-gray-600'
                             }`}
                         >
@@ -274,8 +274,8 @@ function ArenaPageContent() {
                                 {activeTab === 'published' ? 'Publish submission' : 'No submissions under review'}
                             </h3>
                             <p className='mt-2 text-sm text-gray-500 leading-relaxed max-w-xs'>
-                                {activeTab === 'published' 
-                                    ? 'Submissions appear here after they are approved by an admin and will be visible to your community.' 
+                                {activeTab === 'published'
+                                    ? 'Submissions appear here after they are approved by an admin and will be visible to your community.'
                                     : 'Your pending uploads will appear here while waiting for administrative moderation.'}
                             </p>
 
@@ -320,9 +320,9 @@ function ArenaPageContent() {
                         <p className='mt-1 text-xs text-gray-400 font-medium'>Discover and vote for other creators</p>
                     </button>
 
-                    <button 
-                        type='button' 
-                        onClick={handleShareProfile} 
+                    <button
+                        type='button'
+                        onClick={handleShareProfile}
                         className='rounded-2xl border border-[#E5E5E5] bg-white p-5 text-left transition hover:border-[#1A3C2E] group hover:shadow-sm'
                     >
                         <Share2 className='mb-3.5 h-7 w-7 text-[#1A3C2E] transition-transform duration-200 group-hover:-translate-y-0.5' />

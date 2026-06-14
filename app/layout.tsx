@@ -31,6 +31,7 @@ export default function RootLayout({
                     <GlobalChrome>{children}</GlobalChrome>
                 </AuthProvider>
             </body>
+            ``
         </html>
     );
 }

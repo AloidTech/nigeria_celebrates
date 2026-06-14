@@ -1,5 +1,6 @@
 'use client';
 
+import toast from 'react-hot-toast';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { supabase } from '@/supabase'; // Wire up your client directly
@@ -48,13 +49,13 @@ export default function TalentCard({ id, category, title, description, votes, ti
                 voteDifference = -1; // Undo upvote
                 newVoteState = null;
             } else if (userVoteState === 'down') {
-                voteDifference = 2;  // Flip from downvote to upvote
+                voteDifference = 2; // Flip from downvote to upvote
             } else {
-                voteDifference = 1;  // Brand new upvote
+                voteDifference = 1; // Brand new upvote
             }
         } else {
             if (userVoteState === 'down') {
-                voteDifference = 1;  // Undo downvote
+                voteDifference = 1; // Undo downvote
                 newVoteState = null;
             } else if (userVoteState === 'up') {
                 voteDifference = -2; // Flip from upvote to downvote
@@ -71,14 +72,11 @@ export default function TalentCard({ id, category, title, description, votes, ti
         try {
             // Push changes down to your exact database row target
             // Assuming your submissions table has an 'id' and 'votes_count' integer field
-            const { error } = await supabase
-                .from('project_submissions')
-                .update({ votes_count: targetVotes })
-                .eq('id', id);
+            const { error } = await supabase.from('project_submissions').update({ votes_count: targetVotes }).eq('id', id);
 
             if (error) throw error;
         } catch (error) {
-            console.error("Database sync failure:", error);
+            toast.error('Could not sync the vote count right now.');
             // Revert changes back to original count if the network connection breaks
             setVoteCount(voteCount);
             setUserVoteState(userVoteState);
@@ -91,7 +89,7 @@ export default function TalentCard({ id, category, title, description, votes, ti
         <article className='overflow-hidden rounded-xl bg-white shadow-sm border border-gray-100 transition-all hover:shadow-md'>
             <div className='relative aspect-[3/4] overflow-hidden bg-gray-100'>
                 {imageUrl ? (
-                    <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
+                    <img src={imageUrl} alt={title} className='h-full w-full object-cover' />
                 ) : (
                     <div className='absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400' />
                 )}
@@ -110,23 +108,22 @@ export default function TalentCard({ id, category, title, description, votes, ti
             </div>
             <div className='flex items-center justify-between bg-white px-4 py-3'>
                 <div className='flex items-center bg-gray-50 rounded-full px-2 py-1 border border-gray-100'>
-                    <button 
-                        type="button"
+                    <button
+                        type='button'
                         disabled={isUpdating}
                         onClick={() => handleVote('up')}
-                        className={`p-1 rounded-full transition outline-none ${userVoteState === 'up' ? 'text-green-600 bg-green-50' : 'text-gray-400 hover:text-green-600'}`}
-                    >
+                        className={`p-1 rounded-full transition outline-none ${userVoteState === 'up' ? 'text-green-600 bg-green-50' : 'text-gray-400 hover:text-green-600'}`}>
                         <ChevronUp className='h-4 w-4 font-bold' strokeWidth={2.5} />
                     </button>
-                    <span className={`mx-2 text-sm font-bold transition-colors ${userVoteState === 'up' ? 'text-green-600' : userVoteState === 'down' ? 'text-red-500' : 'text-[#1A3C2E]'}`}>
+                    <span
+                        className={`mx-2 text-sm font-bold transition-colors ${userVoteState === 'up' ? 'text-green-600' : userVoteState === 'down' ? 'text-red-500' : 'text-[#1A3C2E]'}`}>
                         {formatVotes(voteCount)}
                     </span>
-                    <button 
-                        type="button"
+                    <button
+                        type='button'
                         disabled={isUpdating}
                         onClick={() => handleVote('down')}
-                        className={`p-1 rounded-full transition outline-none ${userVoteState === 'down' ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-500'}`}
-                    >
+                        className={`p-1 rounded-full transition outline-none ${userVoteState === 'down' ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-500'}`}>
                         <ChevronDown className='h-4 w-4 font-bold' strokeWidth={2.5} />
                     </button>
                 </div>
