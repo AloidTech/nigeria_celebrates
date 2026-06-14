@@ -1,5 +1,6 @@
 'use client';
 
+import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Play, Loader2 } from 'lucide-react';
@@ -56,10 +57,7 @@ export default function TalentZoneContent() {
     useEffect(() => {
         const fetchLiveSubmissions = async () => {
             try {
-                const { data, error } = await supabase
-                    .from('submissions')
-                    .select('*')
-                    .eq('is_approved', true);
+                const { data, error } = await supabase.from('submissions').select('*').eq('is_approved', true);
 
                 if (error) throw error;
 
@@ -70,7 +68,7 @@ export default function TalentZoneContent() {
                         category: item.category ? item.category.toUpperCase().replace(' (HANDMADE ONLY)', '') : 'GENERAL',
                         title: item.title,
                         description: item.description || '',
-                        votes: '0', 
+                        votes: '0',
                         time: 'Just now',
                         mediaUrl: item.media_url
                     }));
@@ -78,7 +76,7 @@ export default function TalentZoneContent() {
                     setAllCards([...liveCards, ...mockCards]);
                 }
             } catch (err) {
-                console.error('Failed to load dynamic timeline feed:', err);
+                toast.error('Failed to load the live talent feed.');
             } finally {
                 setIsLoading(false);
             }
@@ -108,8 +106,8 @@ export default function TalentZoneContent() {
             </section>
 
             {isLoading ? (
-                <div className="flex w-full items-center justify-center py-20 text-gray-500 gap-2 text-sm">
-                    Syncing live database updates... <Loader2 className="h-4 w-4 animate-spin text-[#1A3C2E]" />
+                <div className='flex w-full items-center justify-center py-20 text-gray-500 gap-2 text-sm'>
+                    Syncing live database updates... <Loader2 className='h-4 w-4 animate-spin text-[#1A3C2E]' />
                 </div>
             ) : (
                 <CategoryTabs cards={allCards} />
