@@ -16,7 +16,8 @@ const mockCards: TalentCardProps[] = [
         title: 'Eko Beats Freestyle',
         description: 'Raw acoustic performance blending afrobeat rhythms with soulful lyrics...',
         votes: '1.2k',
-        time: '2h ago'
+        time: '2h ago',
+        mediaUrl: 'https://www.w3schools.com/html/mov_bbb.mp4'
     },
     {
         id: 'mock-art-2',
@@ -25,7 +26,8 @@ const mockCards: TalentCardProps[] = [
         description: 'Hand-painted portrait exploring the intersection of modern youth and...',
         votes: '856',
         time: '5h ago',
-        materials: 'Charcoal, Acrylic, Gold Leaf on Canvas'
+        materials: 'Charcoal, Acrylic, Gold Leaf on Canvas',
+        mediaUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800'
     },
     {
         id: 'mock-freestyle-3',
@@ -33,7 +35,8 @@ const mockCards: TalentCardProps[] = [
         title: 'Abuja Streets Skillset',
         description: "Incredible gravity-defying tricks captured in the heart of Abuja's...",
         votes: '3.4k',
-        time: 'Just now'
+        time: 'Just now',
+        mediaUrl: 'https://www.w3schools.com/html/movie.mp4'
     },
     {
         id: 'mock-fashion-4',
@@ -41,7 +44,8 @@ const mockCards: TalentCardProps[] = [
         title: 'Aso-Oke Reimagined',
         description: 'A stunning showcase of traditional Yorùbá fabric transformed into...',
         votes: '1.1k',
-        time: '1h ago'
+        time: '1h ago',
+        mediaUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800'
     }
 ];
 
@@ -67,7 +71,8 @@ export default function TalentZoneContent() {
                         title: item.title,
                         description: item.description || '',
                         votes: '0', 
-                        time: 'Just now'
+                        time: 'Just now',
+                        mediaUrl: item.media_url
                     }));
 
                     setAllCards([...liveCards, ...mockCards]);

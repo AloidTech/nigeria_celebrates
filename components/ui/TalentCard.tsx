@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/supabase';
 
@@ -12,6 +12,7 @@ export type TalentCardProps = {
     votes: string | number;
     time: string;
     materials?: string | null;
+    mediaUrl?: string | null;
 };
 
 function parseVotes(votes: string | number) {
@@ -34,7 +35,19 @@ function formatVotes(value: number) {
     return value.toString();
 }
 
-export default function TalentCard({ id, category, title, description, votes, time, materials }: TalentCardProps) {
+function getFileType(url: string | null | undefined): 'image' | 'video' | 'other' {
+    if (!url) return 'other';
+    const cleanUrl = url.split('?')[0].toLowerCase();
+    if (cleanUrl.match(/\.(jpeg|jpg|gif|png|webp|svg|heic)$/)) {
+        return 'image';
+    }
+    if (cleanUrl.match(/\.(mp4|webm|ogg|mov|avi|mkv|3gp)$/)) {
+        return 'video';
+    }
+    return 'other';
+}
+
+export default function TalentCard({ id, category, title, description, votes, time, materials, mediaUrl }: TalentCardProps) {
     const [voteCount, setVoteCount] = useState(() => parseVotes(votes));
     // Track exact vote state per device: 'up', 'down', or null (haven't voted yet)
     const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
@@ -52,7 +65,7 @@ export default function TalentCard({ id, category, title, description, votes, ti
         if (!id) return;
 
         if (userVote === 'up') {
-            alert("You've already upvoted this talent performance! 🌟");
+            alert("You've already upvoted this talent performance!");
             return;
         }
 
@@ -85,7 +98,7 @@ export default function TalentCard({ id, category, title, description, votes, ti
         if (!id) return;
 
         if (userVote === 'down') {
-            alert("You've already downvoted this talent performance! ⬇️");
+            alert("You've already downvoted this talent performance!");
             return;
         }
 
@@ -111,13 +124,35 @@ export default function TalentCard({ id, category, title, description, votes, ti
     };
 
     return (
-        <article className='overflow-hidden rounded-xl bg-white shadow-sm'>
-            <div className='relative aspect-[3/4] overflow-hidden'>
-                <div className='absolute inset-0 bg-gray-400' />
-                <div className='absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.85)_0%,rgba(0,0,0,0.3)_50%,transparent_100%)]' />
-                <div className='absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.2),transparent_18%),radial-gradient(circle_at_70%_30%,rgba(255,255,255,0.14),transparent_18%)]' />
-                <div className='absolute left-3 top-3 rounded-full bg-[#8B7355] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white'>{category}</div>
-                <div className='absolute bottom-0 left-0 right-0 p-4'>
+        <article className='overflow-hidden rounded-xl bg-white shadow-sm border border-gray-100 transition-all hover:shadow-md'>
+            <div className='relative aspect-[3/4] overflow-hidden bg-gray-900'>
+                {mediaUrl ? (
+                    getFileType(mediaUrl) === 'video' ? (
+                        <video 
+                            src={mediaUrl} 
+                            className="h-full w-full object-cover" 
+                            controls={false}
+                            muted
+                            loop
+                            playsInline
+                            onMouseOver={(e) => (e.target as HTMLVideoElement).play().catch(() => {})}
+                            onMouseOut={(e) => (e.target as HTMLVideoElement).pause()}
+                        />
+                    ) : getFileType(mediaUrl) === 'image' ? (
+                        <img src={mediaUrl} alt={title} className="h-full w-full object-cover" />
+                    ) : (
+                        <div className="flex h-full w-full flex-col items-center justify-center bg-[#1A3C2E] text-white p-4">
+                            <FileText className="h-10 w-10 mb-2 text-white/80" />
+                            <span className="text-xs font-semibold uppercase tracking-wider text-center">Document / File</span>
+                            <span className="text-[10px] text-white/70 mt-1 truncate max-w-full text-center">{mediaUrl.split('/').pop()}</span>
+                        </div>
+                    )
+                ) : (
+                    <div className='absolute inset-0 bg-gray-400' />
+                )}
+                <div className='absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.85)_0%,rgba(0,0,0,0.3)_50%,transparent_100%)] pointer-events-none' />
+                <div className='absolute left-3 top-3 rounded-full bg-[#8B7355] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white z-10'>{category}</div>
+                <div className='absolute bottom-0 left-0 right-0 p-4 z-10 pointer-events-none'>
                     <h3 className='text-lg font-bold leading-tight text-white'>{title}</h3>
                     <p className='mt-1 line-clamp-2 text-xs text-white/80'>{description}</p>
                 </div>
