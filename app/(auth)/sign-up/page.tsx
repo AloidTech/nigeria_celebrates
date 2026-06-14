@@ -14,7 +14,7 @@ import { checkEmail, checkPassword } from '@/lib/utils/authUtils';
 import { supabase } from '@/supabase';
 import BirthdayInput from '@/components/auth/BirthDayInput';
 import { toIsoFromInput } from '@/lib/utils/date';
-import { signUpUser } from '@/lib/supabase/queries';
+import { signUpUser } from '@/lib/supabase/auth';
 import { getUser, signIn } from '@/lib/supabase/client';
 
 export default function SignUpPage() {

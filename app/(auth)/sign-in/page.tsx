@@ -11,30 +11,30 @@ import GoogleButton from '@/components/auth/GoogleButton';
 import PasswordInput from '@/components/auth/PasswordInput';
 import { getUser, signIn } from '@/lib/supabase/client';
 import { supabase } from '@/supabase';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 export default function SignInPage() {
     const router = useRouter();
+    const { user, loading } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        getUser(supabase).then(({ user, loading, error }) => {
-            if (user && !loading && !error) {
-                router.push("/")
-            }
-        });
-    }, [])
+        if (user && !loading && !error) {
+            router.push("/");
+        }
+    }, [user, loading, error, router]);
 
     async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        setLoading(true);
+        setIsLoading(true);
         setError('');
 
         if (!email || !password) {
             setError('Please enter an email and password.');
-            setLoading(false);
+            setIsLoading(false);
             return;
         }
         const norm = (n: any) => String(n).trim();
@@ -42,13 +42,12 @@ export default function SignInPage() {
         const { data, error } = await signIn(supabase, norm(email), norm(password));
         if (error) {
             setError(error.message);
-            setLoading(false);
+            setIsLoading(false);
             return;
         }
 
-        router.push("/")
-        // router.back()
-        setLoading(false);
+        router.push("/");
+        setIsLoading(false);
     }
 
     return (
@@ -59,12 +58,12 @@ export default function SignInPage() {
                 {error ? <p className='text-center text-sm text-red-500'>{error}</p> : null}
                 <button
                     type='submit'
-                    disabled={loading}
+                    disabled={isLoading}
                     className='mt-2 w-full rounded-xl bg-[#1A3C2E] py-3.5 text-sm font-semibold text-white transition hover:bg-[#142e23] disabled:cursor-not-allowed disabled:opacity-60'>
-                    {loading ? 'Signing in...' : 'Sign In'}
+                    {isLoading ? 'Signing in...' : 'Sign In'}
                 </button>
                 <AuthDivider />
-                <GoogleButton disabled={loading} onClick={() => setError('Google sign-in is not connected yet.')} />
+                <GoogleButton disabled={isLoading} onClick={() => setError('Google sign-in is not connected yet.')} />
                 <p className='mt-6 text-center text-sm text-gray-500'>
                     Don&apos;t have an account?{' '}
                     <Link href='/sign-up' className='font-medium text-[#1A3C2E]'>

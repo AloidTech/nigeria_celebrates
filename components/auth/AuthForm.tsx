@@ -34,7 +34,7 @@ export default function AuthForm({ value, onChange, type, placeholder, label }: 
 export function AuthMultiForm({ value, onChange, type, placeholder, label }: AuthMultiInputProps) {
     return (
         <div className='space-y-1'>
-            <label className='block text-sm font-medium text-black font-'>{label}</label>
+            <label className='block text-sm font-medium text-black font-semibold'>{label}</label>
             <div className='flex gap-3'>
                 <input
                     className='w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-black placeholder:text-slate-500 outline-none transition focus:border-[#1A3C2E] focus:ring-2 focus:ring-[#1A3C2E]/20'

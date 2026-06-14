@@ -16,7 +16,7 @@ import type { LucideIcon } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { QuestionWithOptions } from "@/lib/database_types/quiz_types";
 import WeeklyQuizGameplay from "@/components/sections/WeeklyQuizGameplay";
-import { useLiveWeeklyQuiz, getWeeklyQuestions } from "@/lib/supabase/queries";
+import { useLiveWeeklyQuiz, getWeeklyQuestions } from "@/lib/supabase/quizzes";
 
 type QuizCategory = "music" | "movies" | "geography" | "art";
 

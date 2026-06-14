@@ -2,20 +2,31 @@
 
 import Link from 'next/link';
 import { Play, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase'; // Adjust this path if your supabase.ts is somewhere else
 
 import CategorySelect from '@/components/ui/CategorySelect';
 import FormField from '@/components/ui/FormField';
 import StepIndicator from '@/components/ui/StepIndicator';
 import UploadDropzone from '@/components/ui/UploadDropzone';
+import { getUser } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 export default function UploadPage() {
+    const { user, loading } = useAuth();
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!user && !loading) router.push("/sign-in");
+    }, [user, loading, router]);
+
+    if (loading || !user) return null;
 
     const handleSubmit = async () => {
         if (!file || !title || !selectedCategory || !description) {
@@ -29,7 +40,7 @@ export default function UploadPage() {
             // 1. Upload the file to Supabase Storage
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-            
+
             const { error: uploadError } = await supabase.storage
                 .from('celebration-uploads')
                 .upload(fileName, file);
@@ -55,13 +66,13 @@ export default function UploadPage() {
             if (dbError) throw dbError;
 
             alert("Submission successful! It is now pending admin approval.");
-            
+
             // Reset form
             setTitle('');
             setDescription('');
             setFile(null);
             setSelectedCategory(null);
-            
+
         } catch (error: any) {
             console.error("Upload failed:", error);
             alert("Upload failed: " + error.message);
@@ -90,9 +101,9 @@ export default function UploadPage() {
                     <div className='text-xs font-bold uppercase tracking-widest text-[#1A3C2E]'>STEP 1: UPLOAD YOUR MEDIA</div>
                     <div className='mt-3'>
                         {/* Make sure your UploadDropzone component accepts an onFileSelect prop! */}
-                        <UploadDropzone 
-                            key={selectedCategory ?? 'none'} 
-                            selectedCategory={selectedCategory} 
+                        <UploadDropzone
+                            key={selectedCategory ?? 'none'}
+                            selectedCategory={selectedCategory}
                             onFileSelect={(selectedFile: File) => setFile(selectedFile)}
                         />
                     </div>

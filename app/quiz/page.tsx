@@ -15,8 +15,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getShortQuizByCategory } from "@/lib/supabase/queries";
-import type { QuizCategory } from "@/lib/supabase/queries";
+import { getShortQuizByCategory } from "@/lib/supabase/quizzes";
+import type { QuizCategory } from "@/lib/supabase/quizzes";
 import type { QuestionWithOptions } from "@/lib/database_types/quiz_types";
 
 import ChampionCard from "@/components/ui/ChampionCard";
@@ -190,9 +190,9 @@ export default function QuizPage() {
     try {
       const supabase = getSupabaseBrowserClient()!;
       if (!supabase) throw new Error("No supabase client!");
-      
+
       const fetched = await getShortQuizByCategory(supabase, category);
-      
+
       if (fetched && fetched.length > 0) {
         setLoadedQuestions(fetched);
         setOverlayState("none");
@@ -344,7 +344,7 @@ export default function QuizPage() {
                 </div>
 
                 {/* Transparent and blurred overlay */}
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#0A2818]/55 backdrop-blur-[3px] p-6 text-center transition-all duration-300">
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-800/55 backdrop-blur-[3px] p-6 text-center transition-all duration-300">
                   {overlayState === "start" && (
                     <div className="relative z-10 max-w-lg space-y-6 animate-in fade-in zoom-in-95 duration-500">
                       <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-[#D4A017]">
@@ -423,6 +423,7 @@ export default function QuizPage() {
                         </div>
                       )}
                     </div>
+                  )}
                   {overlayState === "upcoming" && (
                     <div className="relative z-10 w-full max-w-2xl space-y-8 animate-in fade-in zoom-in-95 duration-400">
                       <button

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 type ArenaSummaryCardProps = {
     label: string;
-    value: string | number;
+    value: ReactNode;
     sublabel: string;
     icon: ReactNode;
     variant?: 'dark' | 'light';

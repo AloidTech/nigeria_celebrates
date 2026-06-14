@@ -21,7 +21,7 @@ import {
 import Link from 'next/link';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { getWeeklyQuiz, useLiveWeeklyQuiz } from '@/lib/supabase/queries';
+import { getWeeklyQuiz, useLiveWeeklyQuiz } from '@/lib/supabase/quizzes';
 import type { QuestionWithOptions, GeneralQuizSettings, QuizStatus, QuizCategory, DifficultyLevel, QuizType } from '@/lib/database_types/quiz_types';
 
 import { formatForInput, formatForDisplay, calculateDuration } from '@/lib/utils/date';
