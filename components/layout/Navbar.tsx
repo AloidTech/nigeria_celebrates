@@ -28,14 +28,14 @@ export default function Navbar() {
             <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
                 <div className='flex h-16 items-center justify-between'>
                     {/* Logo/Brand */}
-                    <div className='flex items-center'>
+                    <div className='flex items-center lg:flex-1'>
                         <Link href='/' className='text-xl font-bold uppercase tracking-[0.18em] text-[#1a3c2e]'>
                             Naija Vibe
                         </Link>
                     </div>
 
                     {/* Desktop Navigation Links */}
-                    <nav className='hidden lg:flex items-center gap-x-6 text-sm font-medium text-[#4d4d4d] lg:flex-1 lg:pl-10'>
+                    <nav className='hidden lg:flex items-center justify-center gap-x-6 text-sm font-medium text-[#4d4d4d]'>
                         {navLinks.map((link) => (
                             <Link
                                 key={link.href}
@@ -47,7 +47,7 @@ export default function Navbar() {
                     </nav>
 
                     {/* Desktop Action Buttons */}
-                    <div className='hidden lg:flex items-center gap-3.5'>
+                    <div className='hidden lg:flex items-center justify-end gap-3.5 lg:flex-1'>
                         {!loading && user ? (
                             <>
                                 <Link
