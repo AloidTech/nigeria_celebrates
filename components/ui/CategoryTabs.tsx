@@ -192,7 +192,7 @@ export default function CategoryTabs({ cards }: CategoryTabsProps) {
                 <div 
                     ref={scrollContainerRef}
                     onScroll={handleScroll}
-                    className="fixed inset-0 z-50 bg-black overflow-y-scroll snap-y snap-mandatory scroll-smooth"
+                    className="fixed inset-0 z-50 bg-black overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar"
                 >
                     {/* Floating Close Button */}
                     <button 
