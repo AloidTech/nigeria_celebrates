@@ -26,33 +26,31 @@ export default function UploadPage() {
         setIsSubmitting(true);
 
         try {
-            // 1. Upload the file to Supabase Storage
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-            
-            const { error: uploadError } = await supabase.storage
-                .from('celebration-uploads')
-                .upload(fileName, file);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("You must be logged in to submit.");
+                return;
+            }
 
-            if (uploadError) throw uploadError;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('title', title);
+            formData.append('category', selectedCategory);
+            formData.append('description', description);
 
-            // 2. Get the public URL for the file
-            const { data: publicUrlData } = supabase.storage
-                .from('celebration-uploads')
-                .getPublicUrl(fileName);
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`
+                },
+                body: formData
+            });
 
-            // 3. Save everything to the database (defaults to is_approved: false)
-            const { error: dbError } = await supabase
-                .from('submissions')
-                .insert({
-                    title,
-                    category: selectedCategory,
-                    description,
-                    media_url: publicUrlData.publicUrl,
-                    is_approved: false // Admin approval gate!
-                });
+            const result = await response.json();
 
-            if (dbError) throw dbError;
+            if (!response.ok) {
+                throw new Error(result.error || "Failed to upload file");
+            }
 
             alert("Submission successful! It is now pending admin approval.");
             
@@ -94,6 +92,7 @@ export default function UploadPage() {
                             key={selectedCategory ?? 'none'} 
                             selectedCategory={selectedCategory} 
                             onFileSelect={(selectedFile: File) => setFile(selectedFile)}
+                            onClearFile={() => setFile(null)}
                         />
                     </div>
 

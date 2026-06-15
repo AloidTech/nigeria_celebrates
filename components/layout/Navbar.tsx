@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 const navLinks = [
     { href: '/', label: 'Home' },
@@ -15,6 +16,7 @@ const navLinks = [
 
 export default function Navbar() {
     const pathname = usePathname();
+    const { user, loading } = useAuth();
 
     return (
         <header className='sticky top-0 z-30 border-b border-black/5 bg-white/95 backdrop-blur'>

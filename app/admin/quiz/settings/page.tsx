@@ -21,7 +21,7 @@ import {
 import Link from 'next/link';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { getWeeklyQuiz, useLiveWeeklyQuiz } from '@/lib/supabase/queries';
+import { getWeeklyQuiz, useLiveWeeklyQuiz } from '@/lib/supabase/queries/quizzes';
 import type { QuestionWithOptions, GeneralQuizSettings, QuizStatus, QuizCategory, DifficultyLevel, QuizType } from '@/lib/database_types/quiz_types';
 
 import { formatForInput, formatForDisplay, calculateDuration } from '@/lib/utils/date';
@@ -153,17 +153,9 @@ export default function QuizSettingsPage() {
                         start_day: 1
                     };
 
-                    const { data: newGs, error: insertError } = await supabase
-                        .from('general_settings')
-                        .insert(defaultGs)
-                        .select()
-                        .single();
-
-                    if (insertError) {
-                        setGsError('Failed to create default settings.');
-                        throw insertError;
-                    }
-                    gsData = newGs;
+                    // We simply use the default settings in memory.
+                    // The actual row will be inserted when the user clicks 'Save Settings'.
+                    gsData = defaultGs;
                 }
 
                 // Populate general settings state
@@ -323,7 +315,7 @@ export default function QuizSettingsPage() {
             const supabase = getSupabaseBrowserClient();
             const totalMs = (durationMinutes * 60 + durationSeconds) * 1000;
 
-            // 1. Update general settings
+            // 1. Update or Insert general settings
             const { data: gsData } = await supabase
                 .from('general_settings')
                 .select('id')
@@ -331,27 +323,36 @@ export default function QuizSettingsPage() {
                 .limit(1)
                 .maybeSingle();
 
-            const { error: gsErrorVal } = await supabase
-                .from('general_settings')
-                .update({
-                    weekly_category: weeklyCategory,
-                    quiz_duration: totalMs,
-                    question_amount: totalQuestions,
-                    start_day: startDay,
-                    // Convert HH:MM UI values to full ISO timestamps (using today's date as reference)
-                    weekly_start_time: new Date(`${new Date().toISOString().split('T')[0]}T${weeklyStartTime}:00Z`).toISOString(),
-                    weekly_end_time: new Date(`${new Date().toISOString().split('T')[0]}T${weeklyEndTime}:00Z`).toISOString(),
-                    interval_duration: `${intervalDays} days`,
-                    auto_generation_enabled: autoGenerationEnabled,
-                    difficulty_distribution: [
-                        { level: 'easy', question_amount: easyCount },
-                        { level: 'moderate', question_amount: moderateCount },
-                        { level: 'difficult', question_amount: difficultCount }
-                    ]
-                })
-                .eq('id', gsData?.id);
+            const gsPayload = {
+                quiz_type: 'weekly' as QuizType,
+                weekly_category: weeklyCategory,
+                quiz_duration: totalMs,
+                question_amount: totalQuestions,
+                start_day: startDay,
+                // Convert HH:MM UI values to full ISO timestamps (using today's date as reference)
+                weekly_start_time: new Date(`${new Date().toISOString().split('T')[0]}T${weeklyStartTime}:00Z`).toISOString(),
+                weekly_end_time: new Date(`${new Date().toISOString().split('T')[0]}T${weeklyEndTime}:00Z`).toISOString(),
+                interval_duration: `${intervalDays} days`,
+                auto_generation_enabled: autoGenerationEnabled,
+                difficulty_distribution: [
+                    { level: 'easy', question_amount: easyCount },
+                    { level: 'moderate', question_amount: moderateCount },
+                    { level: 'difficult', question_amount: difficultCount }
+                ]
+            };
 
-            if (gsErrorVal) throw gsErrorVal;
+            if (gsData) {
+                const { error: gsErrorVal } = await supabase
+                    .from('general_settings')
+                    .update(gsPayload)
+                    .eq('id', gsData.id);
+                if (gsErrorVal) throw gsErrorVal;
+            } else {
+                const { error: gsErrorVal } = await supabase
+                    .from('general_settings')
+                    .insert([gsPayload]);
+                if (gsErrorVal) throw gsErrorVal;
+            }
 
             // 2. Update or insert the current weekly quiz
             const { data: quizData } = await supabase

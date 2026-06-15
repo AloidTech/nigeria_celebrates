@@ -11,12 +11,26 @@ type LeaderboardJoinedRow = {
   quiz: {
     category: QuizCategory;
   } | null;
+  profile?: {
+    handle: string;
+    avatar_url: string | null;
+  } | null;
 };
 
 export type CategoryChampion = {
   category: QuizCategory;
   userId: string;
   topScore: number;
+  participantName: string;
+  avatarUrl: string | null;
+};
+
+export type LeaderboardEntryData = {
+  rank: number;
+  name: string;
+  score: number;
+  streak: string;
+  userId: string;
 };
 
 export async function getCategoryChampions(
@@ -24,11 +38,12 @@ export async function getCategoryChampions(
 ): Promise<CategoryChampion[]> {
   const { data, error } = await supabase
     .from("leaderboard_entries")
-    .select("score,user_id,quiz:quizzes!inner(category)")
+    .select("score,user_id,quiz:quizzes!inner(category),profile:profiles(handle,avatar_url)")
     .order("score", { ascending: false });
 
   if (error) {
-    throw error;
+    console.warn("Failed to fetch category champions:", error);
+    return [];
   }
 
   const rows = (data ?? []) as unknown as LeaderboardJoinedRow[];
@@ -44,11 +59,37 @@ export async function getCategoryChampions(
         category: row.quiz.category,
         userId: row.user_id,
         topScore: row.score,
+        participantName: row.profile?.handle || "Anonymous",
+        avatarUrl: row.profile?.avatar_url || null,
       });
     }
   }
 
   return Array.from(topByCategory.values());
+}
+
+export async function getLeaderboard(
+  supabase: SupabaseClient,
+  limit: number = 10
+): Promise<LeaderboardEntryData[]> {
+  const { data, error } = await supabase
+    .from("leaderboard_entries")
+    .select("score,user_id,profile:profiles(handle)")
+    .order("score", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    console.warn("Failed to fetch leaderboard:", error);
+    return [];
+  }
+
+  return data.map((row: any, idx) => ({
+    rank: idx + 1,
+    name: row.profile?.handle || "Anonymous",
+    score: row.score,
+    streak: "Active", // Streak logic not implemented in schema yet
+    userId: row.user_id,
+  }));
 }
 
 export async function getShortQuizByCategory(

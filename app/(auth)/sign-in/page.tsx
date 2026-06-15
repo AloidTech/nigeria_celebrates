@@ -50,8 +50,8 @@ export default function SignInPage() {
                     className='mt-2 w-full rounded-xl bg-[#1A3C2E] py-3.5 text-sm font-semibold text-white transition hover:bg-[#142e23] disabled:cursor-not-allowed disabled:opacity-60'>
                     {loading ? 'Signing in...' : 'Sign In'}
                 </button>
-                <AuthDivider />
-                <GoogleButton disabled={loading} onClick={() => setError('Google sign-in is not connected yet.')} />
+                {/* <AuthDivider />
+                <GoogleButton disabled={loading} onClick={() => setError('Google sign-in is not connected yet.')} /> */}
                 <p className='mt-6 text-center text-sm text-gray-500'>
                     Don&apos;t have an account?{' '}
                     <Link href='/sign-up' className='font-medium text-[#1A3C2E]'>

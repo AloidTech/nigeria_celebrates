@@ -5,6 +5,9 @@ import { ThumbsUp, ThumbsDown, Share2, X } from "lucide-react";
 import { supabase } from "../supabase"; 
 
 
+import { castVote } from "@/lib/supabase/queries/uploads";
+import type { talent_category } from "@/lib/database_types/upload_types";
+
 export type VoteCardProps = {
     id: string;          
     category: string;
@@ -15,6 +18,20 @@ export type VoteCardProps = {
     progress: string;
     onVoteSuccess?: () => void; // Callback hook to refresh the feed list
 };
+
+function mapCategory(cat: string) {
+    const lower = cat.toLowerCase();
+    if (lower.includes('tech')) return 'talent_tech';
+    if (lower.includes('innovat')) return 'talent_innovation';
+    if (lower.includes('art') || lower.includes('logo') || lower.includes('photo')) return 'talent_arts';
+    if (lower.includes('music') || lower.includes('song') || lower.includes('comedy') || lower.includes('movie')) return 'talent_entertainment';
+    if (lower.includes('freestyle') || lower.includes('football') || lower.includes('basketball') || lower.includes('sport')) return 'talent_sports';
+    if (lower.includes('leader')) return 'talent_leadership';
+    if (lower.includes('entrepreneur')) return 'talent_entrepreneurship';
+    if (lower.includes('global')) return 'global_achiever';
+    if (lower.includes('corporate') || lower.includes('economic')) return 'corporate_economic';
+    return 'talent_creativity';
+}
 
 export default function VoteCard({ 
     id, 
@@ -27,53 +44,28 @@ export default function VoteCard({
     onVoteSuccess 
 }: VoteCardProps) {
     const [isShortsOpen, setIsShortsOpen] = useState(false);
-    const [deviceFingerprint, setDeviceFingerprint] = useState<string>("");
     const [upvoteCount, setUpvoteCount] = useState(votes);
-
-    // 2. Load the anonymous device verification key footprint
-    useEffect(() => {
-        const generateHardwareFingerprint = () => {
-            const components = [
-                navigator.userAgent,
-                navigator.language,
-                window.screen.colorDepth,
-                window.screen.width + "x" + window.screen.height
-            ];
-            return btoa(components.join("||")).slice(0, 32);
-        };
-        setDeviceFingerprint(generateHardwareFingerprint());
-    }, []);
 
     // 3. Immersive Control Voting Logic Core
     const handleVote = async (type: "up" | "down") => {
         try {
-            const { error: trackError } = await supabase
-                .from("votes_tracker")
-                .insert([
-                    {
-                        submission_id: id,
-                        device_fingerprint: deviceFingerprint,
-                        vote_type: type
-                    }
-                ]);
-
-            if (trackError) {
-                if (trackError.code === "23505") {
-                    alert("System Integrity Notice: This device has already cast a ballot for this entry.");
-                    return;
-                }
-                throw trackError;
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert("Please log in to vote!");
+                return;
             }
 
-            // Simple update incremental update execution flow
-            if (type === "up") {
-                const { error: updateError } = await supabase
-                    .from("submissions")
-                    .update({ upvotes: upvoteCount + 1 })
-                    .eq("id", id);
+            const isUpvote = type === "up";
+            const mappedCategory = mapCategory(category) as talent_category;
 
-                if (updateError) throw updateError;
+            // Trigger the centralized Option B vote process (deletes then inserts)
+            await castVote(supabase, id, user.id, isUpvote, mappedCategory);
+
+            // Update local count optimistically or visually
+            if (isUpvote) {
                 setUpvoteCount((prev: number) => prev + 1);
+            } else {
+                setUpvoteCount((prev: number) => Math.max(0, prev - 1));
             }
 
             alert("Ballot counted securely!");

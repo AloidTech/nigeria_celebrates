@@ -537,3 +537,92 @@ BEGIN
     RETURN v_session_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- TALENT ZONE & VOTING MODULE SCHEMA
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- ENUMS
+-- ----------------------------------------------------------------------------
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'challenge_category') THEN
+        CREATE TYPE challenge_category AS ENUM (
+            'talent_tech',
+            'talent_arts',
+            'talent_entertainment',
+            'talent_innovation',
+            'talent_sports',
+            'talent_leadership',
+            'talent_entrepreneurship',
+            'talent_creativity',
+            'global_achiever',
+            'corporate_economic'
+        );
+    END IF;
+END $$;
+
+-- ----------------------------------------------------------------------------
+-- TABLES
+-- ----------------------------------------------------------------------------
+
+-- 9. SUBMISSIONS (Talent uploads)
+CREATE TABLE IF NOT EXISTS submissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL,        -- Stores the UI-facing category name (e.g. 'Artwork (Handmade Only)')
+    description TEXT,
+    media_url TEXT NOT NULL,               -- Public URL from Supabase Storage ('hackathon-uploads' bucket)
+    is_approved BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 10. VOTES (One vote per user per submission, enforced by unique constraint)
+CREATE TABLE IF NOT EXISTS votes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    vote_type INTEGER NOT NULL CHECK (vote_type IN (1, -1)),  -- 1 = upvote, -1 = downvote
+    category challenge_category NOT NULL,                      -- Maps to the challenge_category enum
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_user_submission UNIQUE (submission_id, user_id)
+);
+
+-- ----------------------------------------------------------------------------
+-- INDEXES
+-- ----------------------------------------------------------------------------
+
+CREATE INDEX IF NOT EXISTS idx_submissions_user_id ON submissions(user_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_is_approved ON submissions(is_approved);
+CREATE INDEX IF NOT EXISTS idx_submissions_category ON submissions(category);
+CREATE INDEX IF NOT EXISTS idx_votes_submission_id ON votes(submission_id);
+CREATE INDEX IF NOT EXISTS idx_votes_user_id ON votes(user_id);
+
+-- ----------------------------------------------------------------------------
+-- VIEWS
+-- ----------------------------------------------------------------------------
+
+-- Aggregated view: returns all approved submissions with their computed vote totals.
+-- Used by the frontend via: supabase.from('live_submissions_with_votes').select('*')
+CREATE OR REPLACE VIEW live_submissions_with_votes AS
+SELECT
+    s.id,
+    s.user_id,
+    s.title,
+    s.description,
+    s.category,
+    s.media_url,
+    s.is_approved,
+    s.created_at,
+    COALESCE(SUM(v.vote_type), 0) AS total_votes
+FROM
+    submissions s
+LEFT JOIN
+    votes v ON s.id = v.submission_id
+WHERE
+    s.is_approved = true
+GROUP BY
+    s.id;
