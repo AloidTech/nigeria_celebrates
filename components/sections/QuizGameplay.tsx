@@ -3,13 +3,12 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import {
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  Circle,
   Crown,
   Gauge,
-  Medal,
-  ShieldCheck,
+  Eye,
 } from "lucide-react";
 import type { QuestionWithOptions } from "@/lib/database_types/quiz_types";
 import { QuizOptionButton, QuizExplanationCard } from "./QuizSharedComponents";
@@ -30,6 +29,8 @@ export default function QuizGameplay({
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
 
   const totalQuestions = questions.length;
 
@@ -42,48 +43,79 @@ export default function QuizGameplay({
   }
 
   const currentQuestion = questions[currentQuestionIndex];
-  const answeredQuestions = currentQuestionIndex + (isAnswered ? 1 : 0);
-  const questionProgress = Math.min(
-    (answeredQuestions / totalQuestions) * 100,
-    100,
-  );
-  const accuracy =
-    answeredQuestions > 0 ? Math.round((score / answeredQuestions) * 100) : 0;
+  
+  const progressCount = isReviewMode 
+    ? currentQuestionIndex + 1 
+    : currentQuestionIndex + (isAnswered ? 1 : 0);
+    
+  const questionProgress = Math.min((progressCount / totalQuestions) * 100, 100);
+  
+  const accuracy = totalQuestions > 0 ? Math.round((score / (totalQuestions * 100)) * 100) : 0;
 
   function handleOptionSelect(optionId: string) {
-    if (isAnswered || quizCompleted) {
+    if (isAnswered || quizCompleted || isReviewMode) {
       return;
     }
     setSelectedOptionId(optionId);
   }
 
   function handleSubmitAnswer() {
-    if (!selectedOptionId || isAnswered || quizCompleted) {
+    if (!selectedOptionId || isAnswered || quizCompleted || isReviewMode) {
       return;
     }
 
     if (selectedOptionId === currentQuestion.correct_option_id) {
       setScore((currentScore) => currentScore + 100);
     }
-
+    
+    setUserAnswers((prev) => ({ ...prev, [currentQuestionIndex]: selectedOptionId }));
     setIsAnswered(true);
   }
 
   function handleNextQuestion() {
-    if (!isAnswered || quizCompleted) {
+    if ((!isAnswered && !isReviewMode) || (quizCompleted && !isReviewMode)) {
       return;
     }
 
     const isLastQuestion = currentQuestionIndex >= totalQuestions - 1;
 
     if (isLastQuestion) {
-      setQuizCompleted(true);
+      if (!isReviewMode) {
+        setQuizCompleted(true);
+      }
       return;
     }
 
-    setCurrentQuestionIndex((currentIndex) => currentIndex + 1);
-    setSelectedOptionId(null);
-    setIsAnswered(false);
+    const nextIdx = currentQuestionIndex + 1;
+    setCurrentQuestionIndex(nextIdx);
+    
+    if (isReviewMode) {
+       setSelectedOptionId(userAnswers[nextIdx] || null);
+       setIsAnswered(true);
+    } else {
+       setSelectedOptionId(null);
+       setIsAnswered(false);
+    }
+  }
+
+  function handlePrevQuestion() {
+     if (!isReviewMode || currentQuestionIndex === 0) return;
+     const prevIdx = currentQuestionIndex - 1;
+     setCurrentQuestionIndex(prevIdx);
+     setSelectedOptionId(userAnswers[prevIdx] || null);
+     setIsAnswered(true);
+  }
+
+  function handleStartReview() {
+    setIsReviewMode(true);
+    setCurrentQuestionIndex(0);
+    setIsAnswered(true);
+    setSelectedOptionId(userAnswers[0] || null);
+  }
+
+  function handleBackToResults() {
+    setIsReviewMode(false);
+    // keep quizCompleted true
   }
 
   function handleReset() {
@@ -92,6 +124,8 @@ export default function QuizGameplay({
     setIsAnswered(false);
     setScore(0);
     setQuizCompleted(false);
+    setIsReviewMode(false);
+    setUserAnswers({});
     if (onRestart) {
       onRestart();
     }
@@ -111,7 +145,7 @@ export default function QuizGameplay({
 
   return (
     <div className="w-full transition-all duration-300">
-      {quizCompleted ? (
+      {quizCompleted && !isReviewMode ? (
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-[#EEF4F0] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#1A3C2E]">
@@ -123,7 +157,7 @@ export default function QuizGameplay({
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-gray-600">
               Your final summary is ready. Restart the round to improve
-              your score or review the leaderboard to see where you stand.
+              your score or review the answers you submitted.
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -161,6 +195,14 @@ export default function QuizGameplay({
               >
                 Play Again
                 <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleStartReview}
+                className="inline-flex items-center gap-2 rounded-md border border-[#D8D8D8] bg-white px-5 py-3 text-sm font-bold text-[#1A1A1A] transition hover:border-[#1A3C2E] hover:bg-[#FAFAF8]"
+              >
+                <Eye className="h-4 w-4" />
+                Review Answers
               </button>
               <Link
                 href="/quiz/weekly"
@@ -200,8 +242,13 @@ export default function QuizGameplay({
         <>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-
-              <h2 className="mt-4 text-2xl font-bold text-[#1A1A1A] sm:text-xl">
+              {isReviewMode && (
+                 <div className="inline-flex items-center gap-2 rounded-full bg-[#1A3C2E] px-3 py-1 mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                   <Eye className="h-4 w-4" />
+                   Review Mode
+                 </div>
+              )}
+              <h2 className="mt-2 text-2xl font-bold text-[#1A1A1A] sm:text-xl">
                 {currentQuestion.question_text}
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
@@ -256,23 +303,57 @@ export default function QuizGameplay({
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handleSubmitAnswer}
-                disabled={!selectedOptionId || isAnswered}
-                className="quiz-btn-primary"
-              >
-                Submit Answer
-                <ArrowRight className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleNextQuestion}
-                disabled={!isAnswered}
-                className="quiz-btn-secondary"
-              >
-                {currentQuestionIndex >= totalQuestions - 1 ? "Finish Quiz" : "Next Question"}
-              </button>
+              {!isReviewMode ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleSubmitAnswer}
+                    disabled={!selectedOptionId || isAnswered}
+                    className="quiz-btn-primary"
+                  >
+                    Submit Answer
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextQuestion}
+                    disabled={!isAnswered}
+                    className="quiz-btn-secondary"
+                  >
+                    {currentQuestionIndex >= totalQuestions - 1 ? "Finish Quiz" : "Next Question"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePrevQuestion}
+                    disabled={currentQuestionIndex === 0}
+                    className="quiz-btn-secondary"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </button>
+                  {currentQuestionIndex < totalQuestions - 1 ? (
+                    <button
+                      type="button"
+                      onClick={handleNextQuestion}
+                      className="quiz-btn-secondary"
+                    >
+                      Next
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleBackToResults}
+                      className="quiz-btn-primary bg-[#D4A017] hover:bg-[#b8860b]"
+                    >
+                      Back to Results
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </>

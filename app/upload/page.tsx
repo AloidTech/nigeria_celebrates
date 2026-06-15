@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Play, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/supabase'; // Adjust this path if your supabase.ts is somewhere else
 
 import CategorySelect from '@/components/ui/CategorySelect';
@@ -16,6 +16,14 @@ export default function UploadPage() {
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleFileSelect = useCallback((selectedFile: File) => {
+        setFile(selectedFile);
+    }, []);
+
+    const handleClearFile = useCallback(() => {
+        setFile(null);
+    }, []);
 
     const handleSubmit = async () => {
         if (!file || !title || !selectedCategory || !description) {
@@ -85,19 +93,25 @@ export default function UploadPage() {
                 <StepIndicator currentStep={1} />
 
                 <section className='mx-auto mt-4 max-w-2xl rounded-xl bg-white p-8 shadow-sm'>
-                    <div className='text-xs font-bold uppercase tracking-widest text-[#1A3C2E]'>STEP 1: UPLOAD YOUR MEDIA</div>
-                    <div className='mt-3'>
+                    <div className='mb-8'>
+                        <FormField label='Select Category'>
+                            <CategorySelect value={selectedCategory} onChange={setSelectedCategory} />
+                        </FormField>
+                    </div>
+
+                    <div className='text-xs font-bold uppercase tracking-widest text-[#1A3C2E] mb-3'>UPLOAD YOUR MEDIA</div>
+                    <div>
                         {/* Make sure your UploadDropzone component accepts an onFileSelect prop! */}
                         <UploadDropzone 
                             key={selectedCategory ?? 'none'} 
                             selectedCategory={selectedCategory} 
-                            onFileSelect={(selectedFile: File) => setFile(selectedFile)}
-                            onClearFile={() => setFile(null)}
+                            onFileSelect={handleFileSelect}
+                            onClearFile={handleClearFile}
                         />
                     </div>
 
-                    <div className='mt-6 grid grid-cols-2 gap-4'>
-                        <div className='space-y-4'>
+                    <div className='mt-8 flex flex-col sm:flex-row gap-6'>
+                        <div className='flex-1 space-y-6'>
                             <FormField label='Submission Title'>
                                 <input
                                     type='text'
@@ -107,20 +121,15 @@ export default function UploadPage() {
                                     className='w-full rounded-md border border-[#D0D0D0] px-4 py-2.5 text-sm focus:border-[#1A3C2E] focus:outline-none'
                                 />
                             </FormField>
-
-                            <FormField label='Category'>
-                                <CategorySelect value={selectedCategory} onChange={setSelectedCategory} />
+                            <FormField label='Short Description'>
+                                <textarea
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder='Tell the judges about your creative process...'
+                                    className='min-h-[120px] w-full resize-none rounded-md border border-[#D0D0D0] px-4 py-3 text-sm focus:border-[#1A3C2E] focus:outline-none'
+                                />
                             </FormField>
                         </div>
-
-                        <FormField label='Short Description'>
-                            <textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder='Tell the judges about your creative process...'
-                                className='min-h-[132px] w-full resize-none rounded-md border border-[#D0D0D0] px-4 py-3 text-sm focus:border-[#1A3C2E] focus:outline-none'
-                            />
-                        </FormField>
                     </div>
 
                     <div className='mt-8 flex items-center justify-end gap-4'>

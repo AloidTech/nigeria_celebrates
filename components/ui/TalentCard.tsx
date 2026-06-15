@@ -1,7 +1,8 @@
 'use client';
 
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronUp, ChevronDown, X, FileText, PlayCircle } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { castVote, removeVote } from '@/lib/supabase/queries/uploads';
 import type { talent_category } from '@/lib/database_types/upload_types';
@@ -18,22 +19,7 @@ export type TalentCardProps = {
     currentUserVote?: 'up' | 'down' | null;
 };
 
-function mapCategory(cat: string) {
-    const lower = cat.toLowerCase();
-    
-    if (lower.includes('tech')) return 'talent_tech';
-    if (lower.includes('innovat')) return 'talent_innovation';
-    if (lower.includes('art') || lower.includes('logo') || lower.includes('photo')) return 'talent_arts';
-    if (lower.includes('music') || lower.includes('song') || lower.includes('comedy') || lower.includes('movie')) return 'talent_entertainment';
-    if (lower.includes('freestyle') || lower.includes('football') || lower.includes('basketball') || lower.includes('sport')) return 'talent_sports';
-    if (lower.includes('leader')) return 'talent_leadership';
-    if (lower.includes('entrepreneur')) return 'talent_entrepreneurship';
-    if (lower.includes('global')) return 'global_achiever';
-    if (lower.includes('corporate') || lower.includes('economic')) return 'corporate_economic';
-    
-    // Default fallback to creativity for fashion/stories or unknown categories
-    return 'talent_creativity';
-}
+
 
 function parseVotes(votes: string | number) {
     if (typeof votes === 'number') return votes;
@@ -55,18 +41,24 @@ function formatVotes(value: number) {
     return value.toString();
 }
 
+function getFileType(url: string | null | undefined) {
+    if (!url) return 'unknown';
+    if (/\.(mp4|webm|ogg|mov)$/i.test(url)) return 'video';
+    if (/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url) || url.includes('images.unsplash.com') || url.includes('image/upload')) return 'image';
+    return 'document';
+}
+
 export default function TalentCard({ id, category, title, description, votes, time, materials, media_url, currentUserVote }: TalentCardProps) {
+    const router = useRouter();
     const [voteCount, setVoteCount] = useState(() => parseVotes(votes));
-    // Track exact vote state per device: 'up', 'down', or null (haven't voted yet)
     const [userVote, setUserVote] = useState<'up' | 'down' | null>(currentUserVote || null);
 
-    // Identify if the media is a video
     const isVideo = useMemo(() => {
-        if (!media_url) return false;
-        return /\.(mp4|webm|ogg|mov)$/i.test(media_url);
+        return getFileType(media_url) === 'video';
     }, [media_url]);
 
     // Sync voting status from props on change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         setUserVote(currentUserVote || null);
     }, [currentUserVote]);
@@ -75,12 +67,10 @@ export default function TalentCard({ id, category, title, description, votes, ti
         if (!id) return;
 
         if (userVote === 'up') {
-            // Undo upvote
             setVoteCount((current) => current - 1);
             setUserVote(null);
 
             try {
-                // Delete vote from DB
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     await removeVote(supabase, id, user.id);
@@ -94,7 +84,6 @@ export default function TalentCard({ id, category, title, description, votes, ti
         const originalVote = userVote;
         const change = originalVote === 'down' ? 2 : 1;
 
-        // Optimistic UI update
         setVoteCount((current) => current + change);
         setUserVote('up');
 
@@ -105,11 +94,11 @@ export default function TalentCard({ id, category, title, description, votes, ti
                 return;
             }
 
-            // Upsert-based voting: atomically inserts or updates vote
-            await castVote(supabase, id, user.id, true, mapCategory(category) as talent_category);
-        } catch (err: any) {
-            console.error("Database upvote sync issue:", err.message);
-            if (err.message?.includes("row-level security")) {
+            await castVote(supabase, id, user.id, true, category as talent_category);
+        } catch (err: unknown) {
+            const error = err as Error;
+            console.error("Database upvote sync issue:", error.message);
+            if (error.message?.includes("row-level security")) {
                 alert("Vote registered locally! (Database admin needs to enable RLS public Insert policies).");
             }
         }
@@ -119,12 +108,10 @@ export default function TalentCard({ id, category, title, description, votes, ti
         if (!id) return;
 
         if (userVote === 'down') {
-            // Undo downvote
             setVoteCount((current) => current + 1);
             setUserVote(null);
 
             try {
-                // Delete vote from DB
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     await removeVote(supabase, id, user.id);
@@ -138,7 +125,6 @@ export default function TalentCard({ id, category, title, description, votes, ti
         const originalVote = userVote;
         const change = originalVote === 'up' ? 2 : 1;
 
-        // Optimistic UI update
         setVoteCount((current) => current - change);
         setUserVote('down');
 
@@ -149,40 +135,53 @@ export default function TalentCard({ id, category, title, description, votes, ti
                 return;
             }
 
-            // Upsert-based voting: atomically inserts or updates vote
-            await castVote(supabase, id, user.id, false, mapCategory(category) as talent_category);
-        } catch (err: any) {
-            console.error("Database downvote sync issue:", err.message);
+            await castVote(supabase, id, user.id, false, category as talent_category);
+        } catch (err: unknown) {
+            const error = err as Error;
+            console.error("Database downvote sync issue:", error.message);
         }
     };
 
     return (
-        <article className='overflow-hidden rounded-xl bg-white shadow-sm'>
-            <div className='relative aspect-[3/4] overflow-hidden'>
+        <article className='overflow-hidden rounded-xl bg-white shadow-sm flex flex-col h-full'>
+            <div 
+                className='relative aspect-[3/4] overflow-hidden group cursor-pointer' 
+                onClick={() => {
+                    if (id) {
+                        router.push(`/talent/${id}`);
+                    }
+                }}
+            >
                 {media_url ? (
                     isVideo ? (
-                        <video src={media_url} className='absolute inset-0 h-full w-full object-cover' controls muted playsInline />
+                        <>
+                            <video src={media_url} className='absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition duration-500' muted playsInline />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition z-20">
+                                <PlayCircle className="h-12 w-12 text-white/80 group-hover:text-white group-hover:scale-110 transition duration-300 drop-shadow-md" />
+                            </div>
+                        </>
                     ) : (
-                        <img src={media_url} alt={title} className='absolute inset-0 h-full w-full object-cover' />
+                        <img src={media_url} alt={title} className='absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition duration-500' />
                     )
                 ) : (
                     <div className='absolute inset-0 bg-gray-400' />
                 )}
 
-                <div className='absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.85)_0%,rgba(0,0,0,0.3)_50%,transparent_100%)] pointer-events-none' />
+                <div className='absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.85)_0%,rgba(0,0,0,0.3)_50%,transparent_100%)] pointer-events-none z-10' />
 
-                <div className='absolute left-3 top-3 rounded-full bg-[#8B7355] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white z-10'>{category}</div>
-                <div className='absolute bottom-0 left-0 right-0 p-4 z-10 pointer-events-none'>
+                <div className='absolute left-3 top-3 rounded-full bg-[#8B7355] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white z-20'>{category}</div>
+                <div className='absolute bottom-0 left-0 right-0 p-4 z-20 pointer-events-none'>
                     <h3 className='text-lg font-bold leading-tight text-white'>{title}</h3>
                     <p className='mt-1 line-clamp-2 text-xs text-white/80'>{description}</p>
                 </div>
                 {materials ? (
-                    <div className='absolute bottom-24 left-4 right-4 w-fit rounded-md bg-black/50 px-3 py-2 z-10 pointer-events-none'>
+                    <div className='absolute bottom-24 left-4 right-4 w-fit rounded-md bg-black/50 px-3 py-2 z-20 pointer-events-none'>
                         <div className='text-[9px] uppercase tracking-widest text-white/60'>MATERIALS USED</div>
                         <div className='mt-0.5 text-xs italic text-white/90'>{materials}</div>
                     </div>
                 ) : null}
             </div>
+            
             <div className='flex items-center justify-between bg-white px-4 py-3'>
                 <div className='flex items-center'>
                     <ChevronUp
@@ -197,6 +196,7 @@ export default function TalentCard({ id, category, title, description, votes, ti
                 </div>
                 <span className='text-xs text-gray-400'>{time}</span>
             </div>
+
         </article>
     );
 }

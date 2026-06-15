@@ -1,14 +1,15 @@
 export type talent_category = 
-  | 'talent_tech'
-  | 'talent_arts'
-  | 'talent_entertainment'
-  | 'talent_innovation'
-  | 'talent_sports'
-  | 'talent_leadership'
-  | 'talent_entrepreneurship'
-  | 'talent_creativity'
-  | 'global_achiever'
-  | 'corporate_economic';
+  | 'Music / Songs'
+  | 'Football Freestyle'
+  | 'Basketball Freestyle'
+  | 'Comedy Skits'
+  | 'Artwork'
+  | 'Hair Artistry'
+  | 'Fashion Showcase'
+  | 'My Nigeria Story (Short Film)'
+  | 'Photography'
+  | 'Tech Innovation'
+  | 'Logo Design';
 
 export type Submission = {
   id: string;

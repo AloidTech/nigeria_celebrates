@@ -550,16 +550,17 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'challenge_category') THEN
         CREATE TYPE challenge_category AS ENUM (
-            'talent_tech',
-            'talent_arts',
-            'talent_entertainment',
-            'talent_innovation',
-            'talent_sports',
-            'talent_leadership',
-            'talent_entrepreneurship',
-            'talent_creativity',
-            'global_achiever',
-            'corporate_economic'
+            'Music / Songs',
+            'Football Freestyle',
+            'Basketball Freestyle',
+            'Comedy Skits',
+            'Artwork',
+            'Hair Artistry',
+            'Fashion Showcase',
+            'My Nigeria Story (Short Film)',
+            'Photography',
+            'Tech Innovation',
+            'Logo Design'
         );
     END IF;
 END $$;

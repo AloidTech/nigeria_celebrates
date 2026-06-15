@@ -16,7 +16,8 @@ import {
     Clapperboard,
     Globe2,
     Palette,
-    ClipboardList
+    ClipboardList,
+    RotateCcw
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -33,6 +34,41 @@ const categoryIcons: Record<QuizCategory, any> = {
     art: Palette,
 };
 
+/** Small self-ticking countdown that displays time remaining until `endTime`. */
+function LiveCountdown({ endTime }: { endTime: string }) {
+    const [remaining, setRemaining] = useState('');
+
+    useEffect(() => {
+        function tick() {
+            const end = new Date(endTime).getTime();
+            const now = Date.now();
+            const diff = Math.max(0, end - now);
+
+            if (diff <= 0) {
+                setRemaining('Ended');
+                return;
+            }
+
+            const d = Math.floor(diff / (86400000));
+            const h = Math.floor((diff % 86400000) / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+
+            const parts: string[] = [];
+            if (d > 0) parts.push(`${d}d`);
+            parts.push(`${String(h).padStart(2, '0')}h`);
+            parts.push(`${String(m).padStart(2, '0')}m`);
+            parts.push(`${String(s).padStart(2, '0')}s`);
+            setRemaining(parts.join(' '));
+        }
+
+        tick();
+        const id = setInterval(tick, 1000);
+        return () => clearInterval(id);
+    }, [endTime]);
+
+    return <span className='tabular-nums'>{remaining}</span>;
+}
 
 export default function QuizSettingsPage() {
     // --------------------------------------------------
@@ -114,6 +150,9 @@ export default function QuizSettingsPage() {
         weeklyStatus !== initialSettingsRef.current.weeklyStatus ||
         autoGenerationEnabled !== initialSettingsRef.current.autoGenerationEnabled
     ) : false;
+
+    // Whether the current weekly quiz is live/active (settings should be frozen)
+    const isQuizActive = liveQuizData?.status === 'active';
 
     // Initialize/Load configurations from Supabase
     useEffect(() => {
@@ -255,16 +294,18 @@ export default function QuizSettingsPage() {
     useEffect(() => {
         console.log('Live quiz data update:', liveQuizData);
         if (!quizLoading && liveQuizData && !hasChanges && initialSettingsRef.current) {
-            // Guard against null/undefined timestamps
-            const safeStart = liveQuizData.start_time ?? formatForInput(new Date());
-            const safeEnd = liveQuizData.end_time ?? formatForInput(new Date());
+            // Guard against null/undefined timestamps and convert to input format
+            const safeStart = liveQuizData.start_time ? formatForInput(liveQuizData.start_time) : formatForInput(new Date());
+            const safeEnd = liveQuizData.end_time ? formatForInput(liveQuizData.end_time) : formatForInput(new Date());
             setWeeklyStatus(liveQuizData.status || 'scheduled');
+            setWeeklyCategory((liveQuizData.category as QuizCategory) || 'music');
             setStartTime(safeStart);
             setEndTime(safeEnd);
             // Update ref
             initialSettingsRef.current.startTime = safeStart;
             initialSettingsRef.current.endTime = safeEnd;
             initialSettingsRef.current.weeklyStatus = liveQuizData.status || 'scheduled';
+            initialSettingsRef.current.weeklyCategory = (liveQuizData.category as QuizCategory) || 'music';
             // Fetch preview questions for the current category
             const fetchQs = async () => {
                 const supabase = getSupabaseBrowserClient();
@@ -279,12 +320,25 @@ export default function QuizSettingsPage() {
         } else if (!quizLoading && !liveQuizData && !hasChanges) {
             // No quiz yet – set defaults
             const now = new Date();
-            const defaultStart = weeklyStartTime;
-            const defaultEnd = weeklyEndTime;
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            
+            const safeStartVal = weeklyStartTime && weeklyStartTime.includes(':') ? weeklyStartTime : '09:00';
+            const safeEndVal = weeklyEndTime && weeklyEndTime.includes(':') ? weeklyEndTime : '17:00';
+            
+            const defaultStart = `${year}-${month}-${day}T${safeStartVal}`;
+            
+            const endDate = new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+            const endYear = endDate.getFullYear();
+            const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+            const endDay = String(endDate.getDate()).padStart(2, '0');
+            
+            const defaultEnd = `${endYear}-${endMonth}-${endDay}T${safeEndVal}`;
+            
             setStartTime(defaultStart);
             setEndTime(defaultEnd);
             setWeeklyQuestions([]);
-
         }
     }, [liveQuizData, quizLoading, hasChanges, pageLoading]);
 
@@ -297,8 +351,8 @@ export default function QuizSettingsPage() {
         setDifficultCount(initialSettingsRef.current?.difficultCount || 0);
         setWeeklyCategory(initialSettingsRef.current?.weeklyCategory || 'music');
         setStartDay(initialSettingsRef.current?.startDay || 2);
-        setWeeklyStartTime(initialSettingsRef.current?.weeklyStartTime || formatForInput(new Date()));
-        setWeeklyEndTime(initialSettingsRef.current?.weeklyEndTime || formatForInput(new Date()));
+        setWeeklyStartTime(initialSettingsRef.current?.weeklyStartTime || '09:00');
+        setWeeklyEndTime(initialSettingsRef.current?.weeklyEndTime || '17:00');
         setIntervalDays(initialSettingsRef.current?.intervalDays || 1);
         setStartTime(initialSettingsRef.current?.startTime || formatForInput(new Date()));
         setEndTime(initialSettingsRef.current?.endTime || formatForInput(new Date()));
@@ -359,12 +413,12 @@ export default function QuizSettingsPage() {
                 .from('quizzes')
                 .select('id')
                 .eq('quiz_type', 'weekly')
-                .eq('status', 'scheduled')
+                .in('status', ['scheduled', 'active'])
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
-            const quizPayload = {
+            const fullQuizPayload = {
                 title: `Weekly Quiz - ${weeklyCategory.charAt(0).toUpperCase() + weeklyCategory.slice(1)}`,
                 category: weeklyCategory,
                 status: weeklyStatus,
@@ -374,10 +428,14 @@ export default function QuizSettingsPage() {
             };
 
             if (quizData) {
-                // Update existing
+                // When the quiz is active, only allow status changes (other fields are frozen)
+                const updatePayload = isQuizActive
+                    ? { status: weeklyStatus }
+                    : fullQuizPayload;
+
                 const { error: quizError } = await supabase
                     .from('quizzes')
-                    .update(quizPayload)
+                    .update(updatePayload)
                     .eq('id', quizData.id);
 
                 if (quizError) throw quizError;
@@ -385,7 +443,7 @@ export default function QuizSettingsPage() {
                 // Insert new
                 const { error: quizError } = await supabase
                     .from('quizzes')
-                    .insert(quizPayload);
+                    .insert(fullQuizPayload);
 
                 if (quizError) throw quizError;
             }
@@ -719,11 +777,10 @@ export default function QuizSettingsPage() {
                                 <button
                                     onClick={handleDiscard}
                                     disabled={loading || !hasChanges}
-                                    className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${hasChanges ? 'btn-save-unsaved' : 'btn-save-saved'
-                                        }`}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-bold text-gray-700 transition-all hover:bg-gray-50 hover:border-gray-300 active:scale-95 disabled:opacity-50 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed"
                                 >
-                                    <Save className='h-4 w-4' />
-                                    {loading ? 'Saving...' : 'Discard'}
+                                    <RotateCcw className='h-4 w-4' />
+                                    Discard
                                 </button>
                             </div>
                         </>
@@ -758,19 +815,36 @@ export default function QuizSettingsPage() {
 
                                 <div className='relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
                                     <div>
-                                        <span className='inline-flex items-center gap-1.5 bg-[#D4A017] text-[#1A1A1A] px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2'>
-                                            <Sparkles className='h-3 w-3 fill-current' />
-                                            Active Campaign
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 ${isQuizActive ? 'bg-red-500 text-white' : 'bg-[#D4A017] text-[#1A1A1A]'}`}>
+                                            {isQuizActive ? (
+                                                <>
+                                                    <span className='relative flex h-2 w-2'>
+                                                        <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75' />
+                                                        <span className='relative inline-flex rounded-full h-2 w-2 bg-white' />
+                                                    </span>
+                                                    Live Now
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles className='h-3 w-3 fill-current' />
+                                                    Active Campaign
+                                                </>
+                                            )}
                                         </span>
                                         <h3 className='text-xl font-black text-white'>Current Weekly Settings</h3>
-                                        <p className='text-xs text-white/60 mt-0.5'>Configure target topic and preview scheduled questions.</p>
+                                        <p className='text-xs text-white/60 mt-0.5'>
+                                            {isQuizActive
+                                                ? 'This quiz is currently live. You can change its status, but other settings are frozen.'
+                                                : 'Configure target topic and preview scheduled questions.'}
+                                        </p>
                                     </div>
 
                                     <div className='flex flex-col items-end gap-1.5 max-sm:w-full'>
                                         <select
                                             value={weeklyCategory}
                                             onChange={(e) => setWeeklyCategory(e.target.value as QuizCategory)}
-                                            className='bg-white/10 hover:bg-white/15 text-white text-sm font-bold rounded-xl border border-white/20 px-3.5 py-2 focus:outline-none focus:border-[#D4A017] cursor-pointer'
+                                            disabled={isQuizActive}
+                                            className={`bg-white/10 hover:bg-white/15 text-white text-sm font-bold rounded-xl border border-white/20 px-3.5 py-2 focus:outline-none focus:border-[#D4A017] ${isQuizActive ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                                         >
                                             <option value='music' className='text-[#1A1A1A]'>Music Category</option>
                                             <option value='movies' className='text-[#1A1A1A]'>Movies Category</option>
@@ -787,7 +861,7 @@ export default function QuizSettingsPage() {
                                         <select
                                             value={weeklyStatus}
                                             onChange={(e) => setWeeklyStatus(e.target.value as QuizStatus)}
-                                            className='mt-1 bg-transparent hover:bg-white/5 text-white font-bold rounded-md px-1 py-0.5 border border-dashed border-white/20 cursor-pointer focus:outline-none'
+                                            className='mt-1 bg-transparent hover:bg-white/5 text-white font-bold rounded-md px-1 py-0.5 border border-dashed border-white/20 focus:outline-none cursor-pointer'
                                         >
                                             <option value='scheduled' className='text-[#1A1A1A]'>Scheduled</option>
                                             <option value='active' className='text-[#1A1A1A]'>Active</option>
@@ -811,7 +885,8 @@ export default function QuizSettingsPage() {
                                             type='datetime-local'
                                             value={startTime ?? ''}
                                             onChange={(e) => setStartTime(e.target.value)}
-                                            className='w-full bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl border border-white/20 px-3 py-1.5 focus:outline-none focus:border-[#D4A017] cursor-pointer'
+                                            disabled={isQuizActive}
+                                            className={`w-full bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl border border-white/20 px-3 py-1.5 focus:outline-none focus:border-[#D4A017] ${isQuizActive ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                                         />
                                     </div>
                                     <div>
@@ -820,13 +895,16 @@ export default function QuizSettingsPage() {
                                             type='datetime-local'
                                             value={endTime}
                                             onChange={(e) => setEndTime(e.target.value)}
-                                            className='w-full bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl border border-white/20 px-3 py-1.5 focus:outline-none focus:border-[#D4A017] cursor-pointer'
+                                            disabled={isQuizActive}
+                                            className={`w-full bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl border border-white/20 px-3 py-1.5 focus:outline-none focus:border-[#D4A017] ${isQuizActive ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                                         />
                                     </div>
                                     <div>
-                                        <label className='block text-[10px] uppercase font-bold text-white/40 tracking-wider mb-1'>Current Duration</label>
+                                        <label className='block text-[10px] uppercase font-bold text-white/40 tracking-wider mb-1'>
+                                            {isQuizActive ? 'Time Remaining' : 'Current Duration'}
+                                        </label>
                                         <div className='w-full bg-white/5 text-white font-bold rounded-xl border border-white/10 px-3 py-1.5 text-center mt-0.5'>
-                                            {calculateDuration(startTime, endTime)}
+                                            {isQuizActive ? <LiveCountdown endTime={endTime} /> : calculateDuration(startTime, endTime)}
                                         </div>
                                     </div>
                                 </div>

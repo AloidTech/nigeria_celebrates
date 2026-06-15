@@ -16,7 +16,7 @@ import type { LucideIcon } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { QuestionWithOptions } from "@/lib/database_types/quiz_types";
 import WeeklyQuizGameplay from "@/components/sections/WeeklyQuizGameplay";
-import { useLiveWeeklyQuiz, getWeeklyQuestions } from "@/lib/supabase/queries/quizzes";
+import { useLiveWeeklyQuiz } from "@/lib/supabase/queries/quizzes";
 
 type QuizCategory = "music" | "movies" | "geography" | "art";
 
@@ -85,19 +85,57 @@ const defaultVisual: CategoryVisual = {
   icon: Trophy,
 };
 
+/** Small self-ticking countdown that displays time remaining until `targetTime`. */
+function LiveCountdown({ targetTime }: { targetTime: string }) {
+  const [remaining, setRemaining] = useState('');
+
+  useEffect(() => {
+    function tick() {
+      const end = new Date(targetTime).getTime();
+      const now = Date.now();
+      const diff = Math.max(0, end - now);
+
+      if (diff <= 0) {
+        setRemaining('Opening now...');
+        return;
+      }
+
+      const d = Math.floor(diff / (86400000));
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+
+      const parts: string[] = [];
+      if (d > 0) parts.push(`${d}d`);
+      parts.push(`${String(h).padStart(2, '0')}h`);
+      parts.push(`${String(m).padStart(2, '0')}m`);
+      parts.push(`${String(s).padStart(2, '0')}s`);
+      setRemaining(parts.join(' '));
+    }
+
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [targetTime]);
+
+  return <span className='tabular-nums font-mono font-bold'>{remaining}</span>;
+}
+
 export default function WeeklyQuizPage() {
   const [questions, setQuestions] = useState<QuestionWithOptions[]>([]);
   const [quizId, setQuizId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasPlayedAlready, setHasPlayedAlready] = useState(false);
   const { quizData, loading: quizLoading } = useLiveWeeklyQuiz();
 
   useEffect(() => {
+    console.log("Quiz data: ", quizData);
     async function load() {
       if (quizLoading) {
         setIsLoading(true);
         return;
       }
-      if (!quizData) {
+      if (!quizData || quizData.status !== 'active') {
         setIsLoading(false);
         return;
       }
@@ -107,11 +145,32 @@ export default function WeeklyQuizPage() {
 
         setQuizId(quizData.id);
 
-        // 2. Fetch questions for this weekly quiz category
-        const { quizQuestions, err } = await getWeeklyQuestions(supabase);
+        // Fetch questions and check user session concurrently
+        const category = quizData.category || 'music';
+        const [questionsRes, authRes] = await Promise.all([
+          supabase
+            .from("questions")
+            .select("*, options!options_question_id_fkey(*)")
+            .eq("category", category)
+            .limit(5),
+          supabase.auth.getUser()
+        ]);
 
-        if (err) throw err;
-        setQuestions(quizQuestions);
+        if (questionsRes.error) throw questionsRes.error;
+        setQuestions(questionsRes.data ? (questionsRes.data as QuestionWithOptions[]) : []);
+
+        if (authRes.data?.user) {
+          const { data: previousEntry } = await supabase
+            .from('leaderboard_entries')
+            .select('id')
+            .eq('quiz_id', quizData.id)
+            .eq('user_id', authRes.data.user.id)
+            .maybeSingle();
+            
+          if (previousEntry) {
+            setHasPlayedAlready(true);
+          }
+        }
       } catch (err) {
         console.error("Failed to load weekly quiz:", err);
       } finally {
@@ -121,15 +180,20 @@ export default function WeeklyQuizPage() {
     load();
   }, [quizData, quizLoading]);
 
-  // Derive the category of the weekly quiz if questions exist
-  const derivedCategory = questions.length > 0 ? questions[0].category : null;
+  // Derive the category from questions or from the quiz data directly
+  const derivedCategory = questions.length > 0
+    ? questions[0].category
+    : (quizData?.category as QuizCategory | null) || null;
   const visual =
     (derivedCategory && categoryVisuals[derivedCategory as QuizCategory]) ||
     defaultVisual;
   const CategoryIcon = visual.icon;
 
-  // Premium empty state if there are no weekly quiz questions
-  if (!isLoading && questions.length === 0) {
+  // Show empty state: either quiz is scheduled (not yet active), there's no quiz at all, active with no questions, or user already played
+  const isScheduledButNotActive = quizData?.status === 'scheduled';
+  const isActiveButNoQuestions = quizData?.status === 'active' && questions.length === 0;
+
+  if (!isLoading && (questions.length === 0 || hasPlayedAlready)) {
     return (
       <main className="min-h-screen bg-[#F5F5F0] text-[#1A1A1A]">
         <section className="px-4 pb-16 sm:px-6 lg:px-8">
@@ -154,11 +218,32 @@ export default function WeeklyQuizPage() {
                 </div>
 
                 <h2 className="text-3xl font-black text-[#1A1A1A] tracking-tight">
-                  No Active Weekly Quiz
+                  {hasPlayedAlready
+                    ? "You've Already Played!"
+                    : isScheduledButNotActive 
+                    ? 'Quiz Not Yet Open' 
+                    : isActiveButNoQuestions 
+                      ? 'Arena Awaiting Questions'
+                      : 'No Active Weekly Quiz'}
                 </h2>
-                <p className="mt-4 text-sm leading-6 text-gray-500">
-                  Our editors are currently curating the next official weekly trivia challenge. Check back shortly to test your knowledge and claim your rank!
-                </p>
+                <div className="mt-4 text-sm leading-6 text-gray-500">
+                  {hasPlayedAlready
+                    ? "You have already submitted an entry for this week's quiz. Check the leaderboard to see your standing, or come back next week!"
+                    : isScheduledButNotActive
+                    ? (
+                      <span>
+                        The next weekly quiz is scheduled and will go live in{' '}
+                        {quizData?.start_time ? (
+                          <span className="bg-[#1A3C2E] text-white px-2 py-1 rounded-md ml-1 shadow-sm">
+                            <LiveCountdown targetTime={quizData.start_time} />
+                          </span>
+                        ) : 'soon'}. Check back when it opens!
+                      </span>
+                    )
+                    : isActiveButNoQuestions
+                      ? 'The weekly quiz is live, but the questions are still being loaded by our editors. Please check back in a few moments!'
+                      : 'Our editors are currently curating the next official weekly trivia challenge. Check back shortly to test your knowledge and claim your rank!'}
+                </div>
 
                 <div className="mt-8 flex flex-col sm:flex-row gap-3 w-full justify-center">
                   <Link

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { QuestionWithOptions, QuizCategory, DifficultyLevel, Quiz } from "@/lib/database_types/quiz_types";
+import type { QuestionWithOptions, QuizCategory, Quiz } from "@/lib/database_types/quiz_types";
 import { useEffect, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
@@ -38,7 +38,7 @@ export async function getCategoryChampions(
 ): Promise<CategoryChampion[]> {
   const { data, error } = await supabase
     .from("leaderboard_entries")
-    .select("score,user_id,quiz:quizzes!inner(category),profile:profiles(handle,avatar_url)")
+    .select("score,user_id,quiz:quizzes!inner(category)")
     .order("score", { ascending: false });
 
   if (error) {
@@ -46,7 +46,17 @@ export async function getCategoryChampions(
     return [];
   }
 
-  const rows = (data ?? []) as unknown as LeaderboardJoinedRow[];
+  const rows = (data ?? []) as any[];
+
+  // Fetch profiles separately because there's no direct FK between leaderboard_entries and profiles
+  const userIds = [...new Set(rows.map(d => d.user_id))];
+  const { data: profilesData } = await supabase
+    .from("profiles")
+    .select("id, handle, avatar_url")
+    .in("id", userIds);
+    
+  const profileMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+
   const topByCategory = new Map<QuizCategory, CategoryChampion>();
 
   for (const row of rows) {
@@ -55,12 +65,13 @@ export async function getCategoryChampions(
     }
 
     if (!topByCategory.has(row.quiz.category)) {
+      const profile = profileMap.get(row.user_id);
       topByCategory.set(row.quiz.category, {
         category: row.quiz.category,
         userId: row.user_id,
         topScore: row.score,
-        participantName: row.profile?.handle || "Anonymous",
-        avatarUrl: row.profile?.avatar_url || null,
+        participantName: profile?.handle || "Anonymous",
+        avatarUrl: profile?.avatar_url || null,
       });
     }
   }
@@ -74,7 +85,7 @@ export async function getLeaderboard(
 ): Promise<LeaderboardEntryData[]> {
   const { data, error } = await supabase
     .from("leaderboard_entries")
-    .select("score,user_id,profile:profiles(handle)")
+    .select("score,user_id")
     .order("score", { ascending: false })
     .limit(limit);
 
@@ -83,13 +94,26 @@ export async function getLeaderboard(
     return [];
   }
 
-  return data.map((row: any, idx) => ({
-    rank: idx + 1,
-    name: row.profile?.handle || "Anonymous",
-    score: row.score,
-    streak: "Active", // Streak logic not implemented in schema yet
-    userId: row.user_id,
-  }));
+  // Fetch profiles separately
+  const userIds = [...new Set(data.map(d => d.user_id))];
+  const { data: profilesData } = await supabase
+    .from("profiles")
+    .select("id, handle")
+    .in("id", userIds);
+    
+  const profileMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+
+  return data.map((row, idx: number) => {
+    const profile = profileMap.get(row.user_id);
+    
+    return {
+      rank: idx + 1,
+      name: profile?.handle || "Anonymous",
+      score: row.score,
+      streak: "Active", // Streak logic not implemented in schema yet
+      userId: row.user_id,
+    };
+  });
 }
 
 export async function getShortQuizByCategory(
@@ -101,14 +125,18 @@ export async function getShortQuizByCategory(
       .from("questions")
       .select("*, options!options_question_id_fkey(*)")
       .eq("category", category)
-      .limit(5);
+      .limit(50); // Fetch up to 50 questions
 
     if (error || !data || data.length === 0) {
       console.warn("No questions found in database");
       return [];
     }
 
-    return data as QuestionWithOptions[];
+    // Shuffle and pick 5 random questions
+    const shuffled = [...data].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 5);
+
+    return selected as QuestionWithOptions[];
   } catch (err) {
     console.error("Failed to fetch from database:", err);
     return [];
@@ -118,11 +146,13 @@ export async function getShortQuizByCategory(
 
 export async function getWeeklyQuiz(supabase: SupabaseClient): Promise<{ quizData: Quiz | null, err: Error | null }> {
   try {
+    // Fetch the most recent weekly quiz that is either active or scheduled.
+    // 'active' takes priority over 'scheduled' via created_at ordering.
     const { data: quizData, error: quizError } = await supabase
       .from("quizzes_resolved")
       .select("*")
       .eq("quiz_type", "weekly")
-      .eq("status", "scheduled")
+      .in("status", ["scheduled", "active"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -131,7 +161,7 @@ export async function getWeeklyQuiz(supabase: SupabaseClient): Promise<{ quizDat
       return { quizData: null, err: quizError };
     }
     if (!quizData) {
-      return { quizData: null, err: new Error("No scheduled weekly quiz found in database") };
+      return { quizData: null, err: new Error("No active or scheduled weekly quiz found in database") };
     }
 
     return { quizData, err: null };

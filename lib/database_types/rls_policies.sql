@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean
 LANGUAGE sql STABLE
 AS $$
-  SELECT (auth.jwt() ->> 'role') = 'admin';
+  SELECT (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin';
 $$;
 
 -- ============================================================================

@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { Bell, Upload, UserCircle } from 'lucide-react';
+import UserProfileButton from '../auth/UserProfileButton';
 
 const navLinks = [
     { href: '/', label: 'Home' },
@@ -17,6 +19,11 @@ const navLinks = [
 export default function Navbar() {
     const pathname = usePathname();
     const { user, loading } = useAuth();
+
+    // Hide Navbar on full-screen talent viewer
+    if (pathname.startsWith('/talent/') && pathname.length > 8) {
+        return null;
+    }
 
     return (
         <header className='sticky top-0 z-30 border-b border-black/5 bg-white/95 backdrop-blur'>
@@ -35,16 +42,30 @@ export default function Navbar() {
                     ))}
                 </nav>
                 <div className='flex w-full items-center justify-center gap-3 sm:w-auto'>
-                    <Link
-                        href='/sign-in'
-                        className='flex-1 inline-flex items-center justify-center rounded-md border border-[#1a3c2e] px-5 py-2 text-sm font-semibold text-[#1a3c2e] transition hover:bg-[#1a3c2e] hover:text-white sm:flex-none'>
-                        Login
-                    </Link>
-                    <Link
-                        href='/sign-up'
-                        className='flex-1 inline-flex items-center justify-center rounded-md bg-[#1a3c2e] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#153325] sm:flex-none'>
-                        Join Now
-                    </Link>
+                    {!loading && user ? (
+                        <div className="flex items-center gap-4 text-[#1a3c2e]">
+                            <button aria-label="Upload" className="hover:text-[#D4A017] transition-colors">
+                                <Upload className="h-5 w-5" />
+                            </button>
+                            <button aria-label="Notifications" className="hover:text-[#D4A017] transition-colors">
+                                <Bell className="h-5 w-5" />
+                            </button>
+                            <UserProfileButton user={user} />
+                        </div>
+                    ) : (
+                        <>
+                            <Link
+                                href='/sign-in'
+                                className='flex-1 inline-flex items-center justify-center rounded-md border border-[#1a3c2e] px-5 py-2 text-sm font-semibold text-[#1a3c2e] transition hover:bg-[#1a3c2e] hover:text-white sm:flex-none'>
+                                Login
+                            </Link>
+                            <Link
+                                href='/sign-up'
+                                className='flex-1 inline-flex items-center justify-center rounded-md bg-[#1a3c2e] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#153325] sm:flex-none'>
+                                Join Now
+                            </Link>
+                        </>
+                    )}
                 </div>
             </div>
         </header>

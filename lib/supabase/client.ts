@@ -63,7 +63,7 @@ export const getSession = async (supabase: SupabaseClient) => {
   return { session, error, loading };
 }
 
-export async function signUp(supabase: any, email: string, password: string) {
+export async function signUp(supabase: SupabaseClient, email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -81,7 +81,7 @@ export async function signUp(supabase: any, email: string, password: string) {
   return { success: true, data };
 }
 
-export async function signIn(supabase: any, email: string, password: string) {
+export async function signIn(supabase: SupabaseClient, email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,

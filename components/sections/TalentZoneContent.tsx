@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Play, Loader2 } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { supabase } from '@/supabase';
 
 import CategoryTabs from '@/components/ui/CategoryTabs';
@@ -13,36 +13,40 @@ import { getLiveSubmissionsWithVotes } from '@/lib/supabase/queries/uploads';
 const mockCards: TalentCardProps[] = [
     {
         id: 'mock-music-1',
-        category: 'MUSIC',
+        category: 'Music / Songs',
         title: 'Eko Beats Freestyle',
         description: 'Raw acoustic performance blending afrobeat rhythms with soulful lyrics...',
         votes: '1.2k',
-        time: '2h ago'
+        time: '2h ago',
+        media_url: 'https://www.w3schools.com/html/mov_bbb.mp4'
     },
     {
         id: 'mock-art-2',
-        category: 'ARTWORK',
+        category: 'Artwork',
         title: 'Ancestral Echoes',
         description: 'Hand-painted portrait exploring the intersection of modern youth and...',
         votes: '856',
         time: '5h ago',
-        materials: 'Charcoal, Acrylic, Gold Leaf on Canvas'
+        materials: 'Charcoal, Acrylic, Gold Leaf on Canvas',
+        media_url: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800'
     },
     {
         id: 'mock-freestyle-3',
-        category: 'FREESTYLE',
+        category: 'Football Freestyle',
         title: 'Abuja Streets Skillset',
         description: "Incredible gravity-defying tricks captured in the heart of Abuja's...",
         votes: '3.4k',
-        time: 'Just now'
+        time: 'Just now',
+        media_url: 'https://www.w3schools.com/html/movie.mp4'
     },
     {
         id: 'mock-fashion-4',
-        category: 'FASHION',
+        category: 'Fashion Showcase',
         title: 'Aso-Oke Reimagined',
         description: 'A stunning showcase of traditional Yorùbá fabric transformed into...',
         votes: '1.1k',
-        time: '1h ago'
+        time: '1h ago',
+        media_url: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800'
     }
 ];
 
@@ -64,7 +68,7 @@ export default function TalentZoneContent() {
                         .from('votes')
                         .select('submission_id, vote_type')
                         .eq('user_id', user.id);
-                    
+
                     if (!userVotesError && userVotes) {
                         userVotes.forEach((v) => {
                             userVotesMap[v.submission_id] = v.vote_type === 1 ? 'up' : 'down';
@@ -76,10 +80,10 @@ export default function TalentZoneContent() {
                     const totalVotes = Math.max(0, item.total_votes || 0);
                     return {
                         id: item.id,
-                        category: item.category ? item.category.toUpperCase().replace(' (HANDMADE ONLY)', '') : 'GENERAL',
+                        category: item.category || 'General',
                         title: item.title,
                         description: item.description || '',
-                        votes: totalVotes.toString(), 
+                        votes: totalVotes.toString(),
                         time: 'Just now',
                         media_url: item.media_url, // Pass the media URL so the card displays the upload
                         currentUserVote: userVotesMap[item.id] || null
@@ -99,7 +103,7 @@ export default function TalentZoneContent() {
 
     return (
         <>
-            <section className='bg-[#F5F5F0] px-4 pb-4 pt-8 sm:px-8'>
+            <section className='bg-[#F5F5F0] px-14 pb-4 pt-8 sm:px-8'>
                 <LiveBadge />
                 <div className='flex flex-col items-start justify-between gap-6 md:flex-row md:items-center'>
                     <div className='max-w-2xl'>
@@ -118,8 +122,27 @@ export default function TalentZoneContent() {
             </section>
 
             {isLoading ? (
-                <div className="flex w-full items-center justify-center py-20 text-gray-500 gap-2 text-sm">
-                    Syncing live database updates... <Loader2 className="h-4 w-4 animate-spin text-[#1A3C2E]" />
+                <div className="w-full py-6">
+                    {/* Skeleton Tabs */}
+                    <div className='flex gap-3 overflow-hidden px-4 py-4 sm:px-8'>
+                        {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="h-9 w-24 sm:w-32 rounded-full bg-gray-200 animate-pulse shrink-0" />
+                        ))}
+                    </div>
+                    {/* Skeleton Carousels */}
+                    {[1, 2].map((carousel) => (
+                        <div key={carousel} className="mb-10 w-full overflow-hidden">
+                            <div className="flex items-center gap-2 mb-4 px-4 sm:px-8">
+                                <div className="h-6 w-6 rounded-full bg-gray-200 animate-pulse" />
+                                <div className="h-6 w-32 rounded-md bg-gray-200 animate-pulse" />
+                            </div>
+                            <div className="flex gap-4 overflow-hidden px-4 sm:px-8 pb-4">
+                                {[1, 2, 3, 4].map((card) => (
+                                    <div key={card} className="shrink-0 w-[280px] sm:w-[320px] aspect-[3/4] rounded-xl bg-gray-200 animate-pulse" />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             ) : (
                 <CategoryTabs cards={allCards} />

@@ -5,11 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import AuthCard from '@/components/auth/AuthCard';
-import AuthDivider from '@/components/auth/AuthDivider';
 import EmailInput from '@/components/auth/EmailInput';
-import GoogleButton from '@/components/auth/GoogleButton';
 import PasswordInput from '@/components/auth/PasswordInput';
-import { storeAuthUser } from '@/lib/firebase/AuthContext';
+import { getSupabaseBrowserClient, signIn } from '@/lib/supabase/client';
 
 export default function SignInPage() {
     const router = useRouter();
@@ -28,13 +26,23 @@ export default function SignInPage() {
             return;
         }
 
-        setTimeout(() => {
-            storeAuthUser({
-                displayName: email.split('@')[0] || 'Creator',
-                email
-            });
-            router.push('/arena');
-        }, 450);
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase) {
+            setError('Authentication service unavailable.');
+            setLoading(false);
+            return;
+        }
+
+        const result = await signIn(supabase, email, password);
+        
+        if (!result.success) {
+            setError(result.error?.message || 'Invalid login credentials.');
+            setLoading(false);
+            return;
+        }
+
+        // Successfully signed in
+        router.push('/');
     }
 
     return (
@@ -50,8 +58,6 @@ export default function SignInPage() {
                     className='mt-2 w-full rounded-xl bg-[#1A3C2E] py-3.5 text-sm font-semibold text-white transition hover:bg-[#142e23] disabled:cursor-not-allowed disabled:opacity-60'>
                     {loading ? 'Signing in...' : 'Sign In'}
                 </button>
-                {/* <AuthDivider />
-                <GoogleButton disabled={loading} onClick={() => setError('Google sign-in is not connected yet.')} /> */}
                 <p className='mt-6 text-center text-sm text-gray-500'>
                     Don&apos;t have an account?{' '}
                     <Link href='/sign-up' className='font-medium text-[#1A3C2E]'>

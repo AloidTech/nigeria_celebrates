@@ -12,9 +12,10 @@ const categories = [
     'Football Freestyle',
     'Basketball Freestyle',
     'Comedy Skits',
-    'Artwork (Handmade Only)',
+    'Artwork',
+    'Hair Artistry',
     'Fashion Showcase',
-    'My Nigeria Story',
+    'My Nigeria Story (Short Film)',
     'Photography',
     'Tech Innovation',
     'Logo Design'

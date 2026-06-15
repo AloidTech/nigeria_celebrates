@@ -12,6 +12,7 @@ export default function GlobalChrome({ children }: { children: React.ReactNode }
     const router = useRouter();
     const pathname = usePathname();
     const isAuthRoute = authRoutes.some((route) => pathname?.startsWith(route));
+    const isTalentRoute = pathname?.startsWith('/talent/') && pathname.length > 8;
     const showBackButton = pathname == '/quiz/weekly';
 
     function handleBackClick() {
@@ -45,7 +46,7 @@ export default function GlobalChrome({ children }: { children: React.ReactNode }
                 </div>
             ) : null}
             {children}
-            <Footer />
+            {!isTalentRoute && <Footer />}
         </>
     );
 }

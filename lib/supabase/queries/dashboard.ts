@@ -24,7 +24,7 @@ export type DashboardData = {
     stats: DashboardStats;
     barData: BarChartData[];
     pieData: PieChartData[];
-    recentPending: any[];
+    recentPending: Record<string, unknown>[];
 };
 
 // --- COLOR MAP FOR PIE CHART ---
@@ -80,7 +80,7 @@ export async function fetchDashboardData(supabase: SupabaseClient): Promise<Dash
     }
 
     // 4. Process all submissions
-    const recentPending: any[] = [];
+    const recentPending: Record<string, unknown>[] = [];
 
     allSubmissions.forEach(sub => {
         // Stats

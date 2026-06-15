@@ -15,7 +15,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getShortQuizByCategory, getLeaderboard, getCategoryChampions } from "@/lib/supabase/queries/quizzes";
+import { getShortQuizByCategory, getLeaderboard, getCategoryChampions, useLiveWeeklyQuiz } from "@/lib/supabase/queries/quizzes";
 import type { QuizCategory, CategoryChampion, LeaderboardEntryData } from "@/lib/supabase/queries/quizzes";
 import type { QuestionWithOptions } from "@/lib/database_types/quiz_types";
 
@@ -30,6 +30,7 @@ type CountdownParts = {
   days: number;
   hours: number;
   minutes: number;
+  seconds: number;
 };
 
 
@@ -46,6 +47,7 @@ const weeklyQuizFallbackCountdown: CountdownParts = {
   days: 6,
   hours: 12,
   minutes: 0,
+  seconds: 0,
 };
 
 
@@ -85,12 +87,27 @@ const categoryChampionVisuals: Record<QuizCategory, CategoryChampionVisual> = {
 
 function getCountdownParts(targetDate: Date) {
   const remainingMs = Math.max(0, targetDate.getTime() - Date.now());
-  const totalMinutes = Math.floor(remainingMs / 60000);
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const minutes = totalMinutes % 60;
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const days = Math.floor(totalSeconds / (3600 * 24));
+  const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
-  return { days, hours, minutes } satisfies CountdownParts;
+  return { days, hours, minutes, seconds } satisfies CountdownParts;
+}
+
+function getFallbackTargetDate() {
+  const now = new Date();
+  const target = new Date(now);
+  const day = now.getDay();
+  const diff = (7 - day) % 7;
+  target.setDate(now.getDate() + diff);
+  target.setHours(18, 0, 0, 0);
+  
+  if (target.getTime() <= now.getTime()) {
+    target.setDate(target.getDate() + 7);
+  }
+  return target;
 }
 
 export default function QuizPage() {
@@ -106,23 +123,28 @@ export default function QuizPage() {
     useState<CountdownParts>(weeklyQuizFallbackCountdown);
   const [liveLeaderboard, setLiveLeaderboard] = useState<LeaderboardEntryData[]>([]);
   const [liveChampions, setLiveChampions] = useState<CategoryChampion[]>([]);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(true);
+
+  const { quizData, loading: quizLoading } = useLiveWeeklyQuiz();
 
   useEffect(() => {
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + 6);
-    targetDate.setHours(18, 0, 0, 0);
+    const targetDate = quizData?.start_time
+      ? new Date(quizData.start_time)
+      : getFallbackTargetDate();
+
+    // Initial run
+    setNextWeeklyQuizRemaining(getCountdownParts(targetDate));
 
     const timerId = window.setInterval(() => {
       setNextWeeklyQuizRemaining(getCountdownParts(targetDate));
     }, 1000);
 
-    setNextWeeklyQuizRemaining(getCountdownParts(targetDate));
-
     return () => window.clearInterval(timerId);
-  }, []);
+  }, [quizData]);
 
   useEffect(() => {
     async function fetchLeaderboardData() {
+      setIsLoadingLeaderboard(true);
       const supabase = getSupabaseBrowserClient();
       if (!supabase) return;
       try {
@@ -134,6 +156,8 @@ export default function QuizPage() {
         setLiveChampions(champsData);
       } catch (err) {
         console.error("Failed to fetch leaderboard", err);
+      } finally {
+        setIsLoadingLeaderboard(false);
       }
     }
     fetchLeaderboardData();
@@ -204,56 +228,88 @@ export default function QuizPage() {
 
           <div className="rounded-[28px] border border-[#E5E5E5] bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-5">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1A3C2E]">
-                  Next Weekly Quiz
+              {quizLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-[#D4A017] border-gray-200"></div>
                 </div>
-                <p className="mt-2 text-sm text-gray-500">
-                  Flip through the countdown and join the next round when it
-                  opens.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {nextWeeklyQuizRemaining.days > 0 && (
-                  <CountdownFlipCard
-                    value={String(nextWeeklyQuizRemaining.days).padStart(
-                      2,
-                      "0",
-                    )}
-                    label="Days"
-                  />
-                )}
-                <CountdownFlipCard
-                  value={String(nextWeeklyQuizRemaining.hours).padStart(2, "0")}
-                  label="Hours"
-                />
-                <CountdownFlipCard
-                  value={String(nextWeeklyQuizRemaining.minutes).padStart(
-                    2,
-                    "0",
-                  )}
-                  label="Minutes"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] bg-[#F8F7F1] px-4 py-4">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1A3C2E]">
-                    Weekly Arena
+              ) : quizData?.status === 'active' ? (
+                /* ── Quiz is LIVE ── */
+                <div className="flex flex-col items-center justify-center text-center py-4 gap-4">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-red-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-red-600">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                    </span>
+                    Quiz Live
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Compete on the official weekly stage.
+                  <h2 className="text-2xl font-black text-[#1A1A1A] sm:text-3xl">
+                    The Weekly Quiz is Live!
+                  </h2>
+                  <p className="text-sm text-gray-500 max-w-xs">
+                    The arena is open. Join now and compete for the top spot on the leaderboard.
                   </p>
+                  <Link
+                    href="/quiz/weekly"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1A3C2E] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#142e23] shadow-md hover:shadow-lg active:scale-95"
+                  >
+                    <Sparkles className="h-4 w-4 fill-current text-[#D4A017]" />
+                    Join Weekly Quiz
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </div>
+              ) : (
+                /* ── Countdown to next quiz ── */
+                <>
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1A3C2E]">
+                      Next Weekly Quiz
+                    </div>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Flip through the countdown and join the next round when it
+                      opens.
+                    </p>
+                  </div>
 
-                <Link
-                  href="/quiz/weekly"
-                  className="inline-flex items-center justify-center rounded-md bg-[#1A3C2E] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#142e23]"
-                >
-                  Join Weekly
-                </Link>
-              </div>
+                  <div className="flex flex-wrap gap-3">
+                    {nextWeeklyQuizRemaining.days > 0 && (
+                      <CountdownFlipCard
+                        value={String(nextWeeklyQuizRemaining.days).padStart(2, "0")}
+                        label="Days"
+                      />
+                    )}
+                    <CountdownFlipCard
+                      value={String(nextWeeklyQuizRemaining.hours).padStart(2, "0")}
+                      label="Hours"
+                    />
+                    <CountdownFlipCard
+                      value={String(nextWeeklyQuizRemaining.minutes).padStart(2, "0")}
+                      label="Minutes"
+                    />
+                    <CountdownFlipCard
+                      value={String(nextWeeklyQuizRemaining.seconds).padStart(2, "0")}
+                      label="Seconds"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] bg-[#F8F7F1] px-4 py-4">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1A3C2E]">
+                        Weekly Arena
+                      </div>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Compete on the official weekly stage.
+                      </p>
+                    </div>
+
+                    <Link
+                      href="/quiz/weekly"
+                      className="inline-flex items-center justify-center rounded-md bg-[#1A3C2E] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#142e23]"
+                    >
+                      Join Weekly
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -410,7 +466,11 @@ export default function QuizPage() {
               </p>
 
               <div className="mt-6 space-y-3">
-                {liveLeaderboard.length > 0 ? liveLeaderboard.map((entry) => {
+                {isLoadingLeaderboard ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-[#D4A017] border-gray-200"></div>
+                  </div>
+                ) : liveLeaderboard.length > 0 ? liveLeaderboard.map((entry) => {
                   const isCurrentPlayer = false; // Logic for detecting current player if needed
 
                   return (
@@ -454,7 +514,11 @@ export default function QuizPage() {
 
           <div className="mt-6 overflow-x-auto pb-2">
             <div className="flex gap-4 pr-12 sm:pr-20 lg:pr-40">
-              {categoryRankings.map((ranking) => (
+              {isLoadingLeaderboard ? (
+                <div className="w-full flex justify-center py-8">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-[#D4A017] border-gray-200"></div>
+                </div>
+              ) : categoryRankings.map((ranking) => (
                 <div key={ranking.categoryLabel} className="min-w-0">
                   <ChampionCard
                     name={ranking.name}

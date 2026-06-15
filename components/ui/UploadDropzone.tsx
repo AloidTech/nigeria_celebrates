@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertCircle, Camera, Info, Video } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, memo } from 'react';
 
 import { categoryFileRules, defaultFileRules } from '@/lib/categoryFileRules';
 
@@ -24,11 +24,26 @@ function getFileExtension(fileName: string) {
     return lastDotIndex >= 0 ? fileName.slice(lastDotIndex).toLowerCase() : '';
 }
 
-export default function UploadDropzone({ selectedCategory, className, onFileSelect, onClearFile }: UploadDropzoneProps) {
+function UploadDropzone({ selectedCategory, className, onFileSelect, onClearFile }: UploadDropzoneProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!selectedFile) {
+            setPreviewUrl(null);
+            return;
+        }
+
+        const url = URL.createObjectURL(selectedFile);
+        setPreviewUrl(url);
+
+        return () => {
+            URL.revokeObjectURL(url);
+        };
+    }, [selectedFile]);
 
     const rules = selectedCategory ? (categoryFileRules[selectedCategory] ?? defaultFileRules) : defaultFileRules;
     const fileInfo = useMemo(() => rules.hint, [rules.hint]);
@@ -105,25 +120,27 @@ export default function UploadDropzone({ selectedCategory, className, onFileSele
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </button>
                     
-                    <div className='relative flex w-full flex-col items-center justify-center rounded-lg bg-black/5'>
-                        {selectedFile.type.startsWith('image/') ? (
-                            <img 
-                                src={URL.createObjectURL(selectedFile)} 
-                                alt="Preview" 
-                                className='max-h-64 rounded-lg object-contain'
-                            />
-                        ) : selectedFile.type.startsWith('video/') ? (
-                            <video 
-                                src={URL.createObjectURL(selectedFile)} 
-                                controls 
-                                className='max-h-64 rounded-lg'
-                            />
-                        ) : (
-                            <div className='flex h-32 w-full items-center justify-center text-sm font-medium text-gray-500'>
-                                {selectedFile.name} (Preview not available)
-                            </div>
-                        )}
-                    </div>
+                    {previewUrl && (
+                        <div className='relative flex w-full flex-col items-center justify-center rounded-lg bg-black/5'>
+                            {selectedFile.type.startsWith('image/') ? (
+                                <img 
+                                    src={previewUrl} 
+                                    alt="Preview" 
+                                    className='max-h-64 rounded-lg object-contain'
+                                />
+                            ) : selectedFile.type.startsWith('video/') ? (
+                                <video 
+                                    src={previewUrl} 
+                                    controls 
+                                    className='max-h-64 rounded-lg'
+                                />
+                            ) : (
+                                <div className='flex h-32 w-full items-center justify-center text-sm font-medium text-gray-500'>
+                                    {selectedFile.name} (Preview not available)
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <div className='mt-3 flex flex-col items-center text-center'>
                         <span className='truncate max-w-[250px] sm:max-w-xs text-sm font-semibold text-[#1A3C2E]'>{selectedFile.name}</span>
                         <span className='text-xs text-gray-500'>{formatBytes(selectedFile.size)}</span>
@@ -177,3 +194,5 @@ export default function UploadDropzone({ selectedCategory, className, onFileSele
         </div>
     );
 }
+
+export default memo(UploadDropzone);

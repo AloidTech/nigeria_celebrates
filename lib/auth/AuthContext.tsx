@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { getUserProfile } from '@/lib/supabase/queries/profiles';
+import type { User } from '@supabase/supabase-js';
 
 export type AuthUser = {
     id: string;
@@ -24,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const supabase = getSupabaseBrowserClient();
 
-        async function fetchUserProfile(authUser: any) {
+        async function fetchUserProfile(authUser: User | null) {
             if (!authUser) {
                 setUser(null);
                 setLoading(false);
