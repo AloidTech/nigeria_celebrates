@@ -67,10 +67,13 @@ export async function signUp(supabase: any, email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
   });
 
   if (error) {
-    console.error(error.message);
+    console.error(error);
     return { success: false, error };
   }
 

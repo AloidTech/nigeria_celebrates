@@ -6,11 +6,10 @@ import ReferralLink from './ReferralLink';
 import ShareButtons from './ShareButtons';
 
 export type VoteCardProps = {
-    id?: string; // 👈 The '?' makes this OPTIONAL. It will never break your teammates' components!
     category: string;
     name: string;
     description: string;
-    votes: string | number;
+    votes: string;
     progress: string;
 };
 

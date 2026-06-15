@@ -10,7 +10,8 @@ const MAX_FILE_SIZE = 52_428_800;
 export type UploadDropzoneProps = {
     selectedCategory: string | null;
     className?: string;
-    onFileSelect?: (file: File) => void; // 👈 Hooked up the callback prop
+    onFileSelect?: (file: File) => void;
+    onClearFile?: () => void;
 };
 
 function formatBytes(bytes: number) {
@@ -23,10 +24,9 @@ function getFileExtension(fileName: string) {
     return lastDotIndex >= 0 ? fileName.slice(lastDotIndex).toLowerCase() : '';
 }
 
-export default function UploadDropzone({ selectedCategory, className, onFileSelect }: UploadDropzoneProps) {
+export default function UploadDropzone({ selectedCategory, className, onFileSelect, onClearFile }: UploadDropzoneProps) {
     const [isDragging, setIsDragging] = useState(false);
-    const [uploadProgress] = useState(45);
-    const [fileName, setFileName] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -62,16 +62,27 @@ export default function UploadDropzone({ selectedCategory, className, onFileSele
 
         if (validationError) {
             setErrorMessage(validationError);
-            setFileName(null);
+            setSelectedFile(null);
             return;
         }
 
         setErrorMessage(null);
-        setFileName(file.name);
+        setSelectedFile(file);
         
-        // 👈 Send the validated file up to the parent page!
         if (onFileSelect) {
             onFileSelect(file);
+        }
+    }
+
+    function clearFile(e: React.MouseEvent) {
+        e.stopPropagation();
+        setSelectedFile(null);
+        setErrorMessage(null);
+        if (onClearFile) {
+            onClearFile();
+        }
+        if (inputRef.current) {
+            inputRef.current.value = '';
         }
     }
 
@@ -82,54 +93,79 @@ export default function UploadDropzone({ selectedCategory, className, onFileSele
 
     return (
         <div className={className}>
-            <div
-                role='button'
-                tabIndex={0}
-                onClick={() => inputRef.current?.click()}
-                onDragOver={(event) => {
-                    event.preventDefault();
-                    setIsDragging(true);
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(event) => {
-                    event.preventDefault();
-                    setIsDragging(false);
-                    handleFile(event.dataTransfer.files?.[0]);
-                }}
-                onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
+            {selectedFile ? (
+                <div className='relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-2'>
+                    <button 
+                        type="button" 
+                        onClick={clearFile}
+                        className='absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white shadow-md transition hover:bg-red-600 focus:outline-none'
+                        aria-label="Remove file"
+                    >
+                        <span className="sr-only">Remove file</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                    
+                    <div className='relative flex w-full flex-col items-center justify-center rounded-lg bg-black/5'>
+                        {selectedFile.type.startsWith('image/') ? (
+                            <img 
+                                src={URL.createObjectURL(selectedFile)} 
+                                alt="Preview" 
+                                className='max-h-64 rounded-lg object-contain'
+                            />
+                        ) : selectedFile.type.startsWith('video/') ? (
+                            <video 
+                                src={URL.createObjectURL(selectedFile)} 
+                                controls 
+                                className='max-h-64 rounded-lg'
+                            />
+                        ) : (
+                            <div className='flex h-32 w-full items-center justify-center text-sm font-medium text-gray-500'>
+                                {selectedFile.name} (Preview not available)
+                            </div>
+                        )}
+                    </div>
+                    <div className='mt-3 flex flex-col items-center text-center'>
+                        <span className='truncate max-w-[250px] sm:max-w-xs text-sm font-semibold text-[#1A3C2E]'>{selectedFile.name}</span>
+                        <span className='text-xs text-gray-500'>{formatBytes(selectedFile.size)}</span>
+                    </div>
+                </div>
+            ) : (
+                <div
+                    role='button'
+                    tabIndex={0}
+                    onClick={() => inputRef.current?.click()}
+                    onDragOver={(event) => {
                         event.preventDefault();
-                        inputRef.current?.click();
-                    }
-                }}
-                className={containerClass}>
-                <input ref={inputRef} type='file' className='hidden' accept={rules.allowedTypes.join(',')} onChange={(event) => handleFile(event.target.files?.[0])} />
-                <div className='mb-2 text-xs font-semibold uppercase tracking-wide text-[#1A3C2E]'>{rules.label}</div>
-                <div className='mb-4 flex items-center gap-3'>
-                    <Video className='h-10 w-10 stroke-[1.5] text-[#1A3C2E]' />
-                    <Camera className='h-10 w-10 stroke-[1.5] text-[#1A3C2E]' />
-                </div>
-                <p className='mt-2 text-lg font-semibold text-[#1A1A1A]'>Drag and drop your file here</p>
-                <p className='mt-1 text-sm text-gray-500'>Or click to browse your local storage</p>
-                <div className='mt-4 inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-xs text-gray-500'>
-                    <Info className='h-3 w-3 text-gray-400' />
-                    <span>
-                        {formatBytes(MAX_FILE_SIZE)} maximum upload size. {fileInfo}
-                    </span>
-                </div>
-            </div>
-
-            {fileName && (
-                <>
-                    <div className='mt-4 mb-1 flex items-center justify-between'>
-                        <span className='text-sm font-semibold text-[#1A3C2E]'>File Ready...</span>
-                        <span className='text-sm font-semibold text-[#1A3C2E]'>100% Ready</span>
+                        setIsDragging(true);
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(event) => {
+                        event.preventDefault();
+                        setIsDragging(false);
+                        handleFile(event.dataTransfer.files?.[0]);
+                    }}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            inputRef.current?.click();
+                        }
+                    }}
+                    className={containerClass}>
+                    <input ref={inputRef} type='file' className='hidden' accept={rules.allowedTypes.join(',')} onChange={(event) => handleFile(event.target.files?.[0])} />
+                    <div className='mb-2 text-xs font-semibold uppercase tracking-wide text-[#1A3C2E]'>{rules.label}</div>
+                    <div className='mb-4 flex items-center gap-3'>
+                        <Video className='h-10 w-10 stroke-[1.5] text-[#1A3C2E]' />
+                        <Camera className='h-10 w-10 stroke-[1.5] text-[#1A3C2E]' />
                     </div>
-                    <div className='h-1.5 w-full rounded-full bg-[#E0E0E0]'>
-                        <div className='h-full w-full rounded-full bg-[#1A3C2E]' />
+                    <p className='mt-2 text-lg font-semibold text-[#1A1A1A]'>Drag and drop your file here</p>
+                    <p className='mt-1 text-sm text-gray-500'>Or click to browse your local storage</p>
+                    <div className='mt-4 inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-xs text-gray-500'>
+                        <Info className='h-3 w-3 text-gray-400' />
+                        <span>
+                            {formatBytes(MAX_FILE_SIZE)} maximum upload size. {fileInfo}
+                        </span>
                     </div>
-                    <p className='mt-3 text-sm text-[#1A3C2E]'>Selected file: {fileName}</p>
-                </>
+                </div>
             )}
 
             {errorMessage ? (

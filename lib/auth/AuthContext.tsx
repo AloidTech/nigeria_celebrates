@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { getUserProfile } from '@/lib/supabase/profiles';
+import { getUserProfile } from '@/lib/supabase/queries/profiles';
 
 export type AuthUser = {
     id: string;

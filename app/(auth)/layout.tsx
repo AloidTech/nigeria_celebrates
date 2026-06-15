@@ -43,8 +43,8 @@ export default function AuthLayout({
                             <p className='mt-1'>One Nation. One Voice. One Celebration.</p>
                         </div>
                     </div>
-                    <div className='p-1 sm:p-2'>
-                        <div className=' rounded-[28px] border border-white/60 bg-white px-8 py-12 shadow-[0_18px_60px_rgba(0,0,0,0.25)]'>{children}</div>
+                    <div className='p-3 sm:p-4 lg:p-5'>
+                        <div className='rounded-[28px] border border-white/60 bg-white px-8 py-12 shadow-[0_18px_60px_rgba(0,0,0,0.25)]'>{children}</div>
                     </div>
                 </div>
             </div>

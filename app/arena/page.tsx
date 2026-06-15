@@ -1,17 +1,20 @@
 'use client';
-import toast from 'react-hot-toast';
+
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { BarChart3, CheckCircle, Plus, Share2, Trophy, ThumbsUp, Upload, User, Pencil, FileText } from 'lucide-react';
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import ArenaSectionHeader from '@/components/arena/ArenaSectionHeader';
 import ArenaSummaryCard from '@/components/arena/ArenaSummaryCard';
+import EmptyUploadsState from '@/components/arena/EmptyUploadsState';
 import UploadHistoryCard from '@/components/arena/UploadHistoryCard';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { getUploadsById } from '@/lib/supabase/uploads';
-import { getTotalUploads, getTotalVotes } from '@/lib/supabase/participants';
+import { getUploadsById } from '@/lib/supabase/queries/uploads';
+import { getTotalUploads, getTotalVotes } from '@/lib/supabase/queries/participants';
+import { getUserProfile, UserProfile } from '@/lib/supabase/queries/profiles';
 
 type ArenaSubmission = {
     id: string;
@@ -20,8 +23,38 @@ type ArenaSubmission = {
     votes: number;
     maxVotes: number;
     timestamp: string;
-    status: 'live' | 'under_review' | 'rejected';
+    status: 'live' | 'under_review';
 };
+
+const uploads = [
+    {
+        id: '1',
+        title: 'Eko Beats Freestyle',
+        category: 'Music',
+        votes: 1200,
+        maxVotes: 5100,
+        timestamp: 'Uploaded 2 days ago',
+        status: 'live' as const
+    },
+    {
+        id: '2',
+        title: 'Aso-Oke Reimagined',
+        category: 'Fashion',
+        votes: 1100,
+        maxVotes: 5100,
+        timestamp: 'Uploaded 1 day ago',
+        status: 'under_review' as const
+    },
+    {
+        id: '3',
+        title: 'Abuja Streets Skillset',
+        category: 'Freestyle',
+        votes: 3400,
+        maxVotes: 5100,
+        timestamp: 'Uploaded just now',
+        status: 'live' as const
+    }
+];
 
 export default function ArenaPage() {
     return (
@@ -36,32 +69,32 @@ function ArenaPageContent() {
     const { user } = useAuth();
     const [copied, setCopied] = useState(false);
     const [activeTab, setActiveTab] = useState<'published' | 'under_review'>('published');
+    const [creatorProfile, setCreatorProfile] = useState<UserProfile | null>(null);
     const [uploads, setUploads] = useState<ArenaSubmission[]>([]);
     const [stats, setStats] = useState({ totalUploads: 0, totalVotes: 0, rank: '#12' });
     const [loadingData, setLoadingData] = useState(true);
 
-    if (!user) return null;
-
-    const displayName = user.displayName || user.email?.split('@')[0] || 'Creator';
-    const handle = `@${user.email?.split('@')[0] || 'creator'}`;
-
-    // Load actual user submissions and metrics
     useEffect(() => {
-        if (!user) return;
-        const userId = user.id;
+        if (!user?.id) return;
 
         async function fetchArenaData() {
+            if (!user?.id) return;
             setLoadingData(true);
             try {
                 const supabase = getSupabaseBrowserClient();
 
-                // Fetch uploads
-                const dbUploads = await getUploadsById(supabase, userId);
+                // Fetch current user's profile
+                const profile = await getUserProfile(supabase, user.id);
+                if (profile) {
+                    setCreatorProfile(profile);
+                }
+
+                // Fetch uploads for the creator
+                const dbUploads = await getUploadsById(supabase, user.id);
 
                 // Map database submissions to ArenaSubmission format
-                const mappedUploads = await Promise.all(
+                const mappedUploads: ArenaSubmission[] = await Promise.all(
                     dbUploads.map(async (sub) => {
-                        // Fetch vote count for this specific upload
                         const { count: voteCount } = await supabase
                             .from('votes')
                             .select('*', { count: 'exact', head: true })
@@ -72,7 +105,7 @@ function ArenaPageContent() {
                             title: sub.title,
                             category: sub.category,
                             votes: voteCount || 0,
-                            maxVotes: 100, // Reference max target for progress bar
+                            maxVotes: 100,
                             timestamp: `Uploaded ${new Date(sub.created_at).toLocaleDateString(undefined, {
                                 month: 'short',
                                 day: 'numeric',
@@ -86,8 +119,8 @@ function ArenaPageContent() {
                 setUploads(mappedUploads);
 
                 // Fetch metrics
-                const totalUploadsCount = await getTotalUploads(supabase, userId);
-                const totalVotesCount = await getTotalVotes(supabase, userId);
+                const totalUploadsCount = await getTotalUploads(supabase, user.id);
+                const totalVotesCount = await getTotalVotes(supabase, user.id);
 
                 setStats({
                     totalUploads: totalUploadsCount,
@@ -95,14 +128,14 @@ function ArenaPageContent() {
                     rank: totalVotesCount >= 50 ? '#3' : totalVotesCount >= 20 ? '#8' : '#12'
                 });
             } catch (error) {
-                toast.error('Could not load arena data right now.');
+                console.error('Error fetching arena data:', error);
             } finally {
                 setLoadingData(false);
             }
         }
 
         fetchArenaData();
-    }, [user]);
+    }, [user?.id]);
 
     async function handleShareProfile() {
         await navigator.clipboard.writeText(`${window.location.origin}/arena`);
@@ -110,9 +143,17 @@ function ArenaPageContent() {
         window.setTimeout(() => setCopied(false), 2500);
     }
 
+
+    const displayName = creatorProfile?.first_name
+        ? `${creatorProfile.first_name} ${creatorProfile.last_name || ''}`.trim()
+        : user?.email?.split('@')[0] || 'Creator';
+
+    const handle = creatorProfile?.handle ? `${creatorProfile.handle}` : `@${user?.email?.split('@')[0] || 'creator'}`;
+
     // Filter uploads based on active tab
     const publishedUploads = uploads.filter((u) => u.status === 'live');
     const underReviewUploads = uploads.filter((u) => u.status === 'under_review');
+
     const currentTabUploads = activeTab === 'published' ? publishedUploads : underReviewUploads;
 
     // Generate profile initials
@@ -126,19 +167,29 @@ function ArenaPageContent() {
     return (
         <main className='min-h-screen bg-[#F5F5F0] text-[#1A1A1A]'>
             {/* Header - YouTube style creator profile area */}
-            <section className='px-8 pt-8 pb-6'>
+            <section className='px-8 pt-8 pb-6 bg-[#F5F5F0]'>
                 <div className='max-w-7xl mx-auto flex flex-col md:flex-row items-center md:items-start gap-6'>
                     {/* Avatar */}
                     <div className='flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#1A3C2E] to-[#2E6B52] shadow-md border-2 border-white relative overflow-hidden'>
-                        <span className='text-3xl font-bold text-white tracking-wider'>
-                            {initials || <User className='h-12 w-12' />}
-                        </span>
+                        {creatorProfile?.avatar_url ? (
+                            <img src={creatorProfile.avatar_url} alt={displayName} className="h-full w-full object-cover" />
+                        ) : (
+                            <span className='text-3xl font-bold text-white tracking-wider'>
+                                {initials || <User className='h-12 w-12' />}
+                            </span>
+                        )}
                     </div>
 
                     {/* Channel / Profile Details */}
                     <div className='flex-1 text-center md:text-left pt-2'>
                         <h1 className='text-3xl font-bold text-[#1A1A1A]'>{displayName}</h1>
                         <p className='text-sm text-gray-500 font-semibold mt-1.5'>{handle}</p>
+
+                        {creatorProfile?.description && (
+                            <p className='text-sm text-gray-600 mt-3 max-w-2xl leading-relaxed'>
+                                {creatorProfile.description}
+                            </p>
+                        )}
 
                         <div className='mt-2.5 text-xs text-gray-400 flex flex-wrap items-center justify-center md:justify-start gap-1 font-medium'>
                             <span>More about this creator</span>
@@ -149,7 +200,7 @@ function ArenaPageContent() {
                         <div className='mt-5 flex flex-wrap items-center justify-center md:justify-start gap-2.5'>
                             <button
                                 type='button'
-                                onClick={() => router.push('/upload')}
+                                onClick={() => router.push('/arena/customize')}
                                 className='rounded-full bg-black/[0.06] hover:bg-black/[0.1] px-5 py-2.5 text-xs font-bold text-[#1A1A1A] transition active:scale-95'
                             >
                                 Customise profile
@@ -194,41 +245,39 @@ function ArenaPageContent() {
 
             {/* Tabs & Uploads Section */}
             <section className='mt-10 max-w-7xl mx-auto px-8'>
-                {/* Youtube-style dark thin tab layout container */}
                 <div className='border-b border-black/[0.08] mb-6 flex items-center justify-between'>
                     <div className='flex gap-6'>
                         <button
                             type='button'
                             onClick={() => setActiveTab('published')}
-                            className={`pb-3.5 text-xs font-extrabold uppercase tracking-widest transition-all relative ${
-                                activeTab === 'published'
-                                    ? 'text-black border-b-2 border-black -mb-[1px]'
-                                    : 'text-gray-400 hover:text-gray-600'
-                            }`}
+                            className={`pb-3.5 text-xs font-extrabold uppercase tracking-widest transition-all relative ${activeTab === 'published'
+                                ? 'text-black border-b-2 border-black -mb-[1px]'
+                                : 'text-gray-400 hover:text-gray-600'
+                                }`}
                         >
                             Published
                         </button>
                         <button
                             type='button'
                             onClick={() => setActiveTab('under_review')}
-                            className={`pb-3.5 text-xs font-extrabold uppercase tracking-widest transition-all relative ${
-                                activeTab === 'under_review'
-                                    ? 'text-black border-b-2 border-black -mb-[1px]'
-                                    : 'text-gray-400 hover:text-gray-600'
-                            }`}
+                            className={`pb-3.5 text-xs font-extrabold uppercase tracking-widest transition-all relative ${activeTab === 'under_review'
+                                ? 'text-black border-b-2 border-black -mb-[1px]'
+                                : 'text-gray-400 hover:text-gray-600'
+                                }`}
                         >
                             Under Review
                         </button>
+
                     </div>
 
                     <Link
                         href='/upload'
-                        className='pb-2 text-xs font-bold text-[#1A3C2E] hover:text-[#2E6B52] transition flex items-center gap-1.5'
-                    >
-                        <Plus className='h-3.5 w-3.5' />
-                        New upload
+                        className='inline-flex items-center gap-2 rounded-md bg-[#1A3C2E] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#142e23]'>
+                        <Plus className='h-4 w-4' />
+                        Upload New Talent
                     </Link>
                 </div>
+
 
                 {loadingData ? (
                     <div className='space-y-4 max-w-4xl'>
@@ -257,7 +306,7 @@ function ArenaPageContent() {
                 ) : currentTabUploads.length > 0 ? (
                     <div className='space-y-4 max-w-4xl'>
                         {currentTabUploads.map((upload) => (
-                            <UploadHistoryCard key={upload.id} {...upload} />
+                            <UploadHistoryCard key={upload.id} {...upload} isOwner={true} />
                         ))}
                     </div>
                 ) : (
@@ -265,7 +314,6 @@ function ArenaPageContent() {
                     <div className='flex flex-col items-center justify-center text-center py-24 px-4 bg-white border border-[#E5E5E5] rounded-3xl max-w-4xl relative overflow-hidden'>
                         <div className='absolute -top-16 -right-16 w-48 h-48 rounded-full bg-[#F5F5F0]/60 blur-3xl pointer-events-none' />
                         <div className='relative z-10 flex flex-col items-center max-w-md'>
-                            {/* Round pencil circle */}
                             <div className='flex h-14 w-14 items-center justify-center rounded-full bg-[#EEF4F0] border border-black/5 text-[#1A3C2E] mb-5 shadow-sm'>
                                 {activeTab === 'published' ? <Pencil className='h-6 w-6' /> : <FileText className='h-6 w-6' />}
                             </div>
@@ -290,34 +338,30 @@ function ArenaPageContent() {
                             )}
                         </div>
                     </div>
+
                 )}
             </section>
 
-            {/* Quick Actions */}
-            <section className='mt-14 mb-16 max-w-7xl mx-auto px-8'>
-                <div className='border-b border-black/[0.08] mb-6 pb-2'>
-                    <h3 className='text-lg font-extrabold text-[#1A1A1A]'>Quick Actions</h3>
-                </div>
+            <section className='mb-12 mt-10 px-8'>
+                <ArenaSectionHeader title='Quick Actions' subtitle='Shortcuts to keep you moving' />
 
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
                     <button
                         type='button'
                         onClick={() => router.push('/upload')}
-                        className='rounded-2xl border border-[#E5E5E5] bg-white p-5 text-left transition hover:border-[#1A3C2E] group hover:shadow-sm'
-                    >
-                        <Upload className='mb-3.5 h-7 w-7 text-[#1A3C2E] transition-transform duration-200 group-hover:-translate-y-0.5' />
-                        <div className='text-sm font-bold text-[#1A1A1A]'>New Upload</div>
-                        <p className='mt-1 text-xs text-gray-400 font-medium'>Submit a new talent entry</p>
+                        className='rounded-xl border border-[#E5E5E5] bg-white p-5 text-left transition hover:border-[#1A3C2E]'>
+                        <Upload className='mb-3 h-8 w-8 text-[#1A3C2E]' />
+                        <div className='text-sm font-semibold text-[#1A1A1A]'>New Upload</div>
+                        <p className='mt-1 text-xs text-gray-400'>Submit a new talent entry</p>
                     </button>
 
                     <button
                         type='button'
                         onClick={() => router.push('/votes')}
-                        className='rounded-2xl border border-[#E5E5E5] bg-white p-5 text-left transition hover:border-[#1A3C2E] group hover:shadow-sm'
-                    >
-                        <BarChart3 className='mb-3.5 h-7 w-7 text-[#1A3C2E] transition-transform duration-200 group-hover:-translate-y-0.5' />
-                        <div className='text-sm font-bold text-[#1A1A1A]'>Browse & Vote</div>
-                        <p className='mt-1 text-xs text-gray-400 font-medium'>Discover and vote for other creators</p>
+                        className='rounded-xl border border-[#E5E5E5] bg-white p-5 text-left transition hover:border-[#1A3C2E]'>
+                        <BarChart3 className='mb-3 h-8 w-8 text-[#1A3C2E]' />
+                        <div className='text-sm font-semibold text-[#1A1A1A]'>Browse & Vote</div>
+                        <p className='mt-1 text-xs text-gray-400'>Discover and vote for other creators</p>
                     </button>
 
                     <button
@@ -332,11 +376,9 @@ function ArenaPageContent() {
                 </div>
             </section>
 
-            {/* Notification Toast */}
             <div
-                className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-[#1A3C2E] px-4.5 py-3 text-sm text-white shadow-lg transition-all duration-300 ${
-                    copied ? 'pointer-events-auto translate-y-0 opacity-100Scale' : 'pointer-events-none translate-y-2 opacity-0'
-                }`}
+                className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-[#1A3C2E] px-4.5 py-3 text-sm text-white shadow-lg transition-all duration-300 ${copied ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'
+                    }`}
             >
                 <CheckCircle className='h-4 w-4 text-[#D4A017]' />
                 <span className='font-bold'>Link copied to clipboard!</span>

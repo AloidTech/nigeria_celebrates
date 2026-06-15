@@ -15,8 +15,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getShortQuizByCategory } from "@/lib/supabase/quizzes";
-import type { QuizCategory } from "@/lib/supabase/quizzes";
+import { getShortQuizByCategory, getLeaderboard, getCategoryChampions } from "@/lib/supabase/queries/quizzes";
+import type { QuizCategory, CategoryChampion, LeaderboardEntryData } from "@/lib/supabase/queries/quizzes";
 import type { QuestionWithOptions } from "@/lib/database_types/quiz_types";
 
 import ChampionCard from "@/components/ui/ChampionCard";
@@ -32,18 +32,7 @@ type CountdownParts = {
   minutes: number;
 };
 
-type LeaderboardEntry = {
-  id: string;
-  participantName: string;
-  quizId: string;
-  score: number;
-};
 
-type QuizMeta = {
-  id: string;
-  title: string;
-  category: QuizCategory;
-};
 
 type CategoryChampionVisual = {
   displayLabel: string;
@@ -59,60 +48,7 @@ const weeklyQuizFallbackCountdown: CountdownParts = {
   minutes: 0,
 };
 
-const leaderboard = [
-  { rank: 1, name: "Amina T.", score: 480, streak: "8 streak" },
-  { rank: 2, name: "Kelechi U.", score: 455, streak: "7 streak" },
-  { rank: 3, name: "Sade O.", score: 430, streak: "6 streak" },
-  { rank: 4, name: "You", score: 410, streak: "5 streak" },
-  { rank: 5, name: "Bayo M.", score: 395, streak: "4 streak" },
-] as const;
 
-const leaderboardEntries: LeaderboardEntry[] = [
-  {
-    id: "le1",
-    participantName: "Amina T.",
-    quizId: "quiz_music_001",
-    score: 480,
-  },
-  {
-    id: "le2",
-    participantName: "Kelechi U.",
-    quizId: "quiz_music_001",
-    score: 455,
-  },
-  {
-    id: "le3",
-    participantName: "Sade O.",
-    quizId: "quiz_movies_001",
-    score: 430,
-  },
-  { id: "le4", participantName: "You", quizId: "quiz_movies_001", score: 410 },
-  {
-    id: "le5",
-    participantName: "Bayo M.",
-    quizId: "quiz_geography_001",
-    score: 395,
-  },
-  {
-    id: "le6",
-    participantName: "Nneka J.",
-    quizId: "quiz_geography_001",
-    score: 442,
-  },
-  { id: "le7", participantName: "Tobi L.", quizId: "quiz_art_001", score: 421 },
-  { id: "le8", participantName: "Musa P.", quizId: "quiz_art_001", score: 404 },
-];
-
-const quizzes: QuizMeta[] = [
-  { id: "quiz_music_001", title: "Afrobeats Weekly", category: "music" },
-  { id: "quiz_movies_001", title: "Nollywood Weekly", category: "movies" },
-  {
-    id: "quiz_geography_001",
-    title: "Nigeria Geography Sprint",
-    category: "geography",
-  },
-  { id: "quiz_art_001", title: "Naija Art Spotlight", category: "art" },
-];
 
 const categoryOrder: QuizCategory[] = ["music", "movies", "geography", "art"];
 
@@ -168,6 +104,8 @@ export default function QuizPage() {
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [nextWeeklyQuizRemaining, setNextWeeklyQuizRemaining] =
     useState<CountdownParts>(weeklyQuizFallbackCountdown);
+  const [liveLeaderboard, setLiveLeaderboard] = useState<LeaderboardEntryData[]>([]);
+  const [liveChampions, setLiveChampions] = useState<CategoryChampion[]>([]);
 
   useEffect(() => {
     const targetDate = new Date();
@@ -181,6 +119,24 @@ export default function QuizPage() {
     setNextWeeklyQuizRemaining(getCountdownParts(targetDate));
 
     return () => window.clearInterval(timerId);
+  }, []);
+
+  useEffect(() => {
+    async function fetchLeaderboardData() {
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) return;
+      try {
+        const [lbData, champsData] = await Promise.all([
+          getLeaderboard(supabase, 5),
+          getCategoryChampions(supabase)
+        ]);
+        setLiveLeaderboard(lbData);
+        setLiveChampions(champsData);
+      } catch (err) {
+        console.error("Failed to fetch leaderboard", err);
+      }
+    }
+    fetchLeaderboardData();
   }, []);
 
   async function handleSelectCategory(category: QuizCategory) {
@@ -207,47 +163,21 @@ export default function QuizPage() {
     }
   }
 
-  const quizCategoryById = quizzes.reduce(
-    (accumulator, quiz) => {
-      accumulator[quiz.id] = quiz.category;
-      return accumulator;
-    },
-    {} as Record<string, QuizCategory>,
-  );
-
-  const topByCategory = leaderboardEntries.reduce(
-    (accumulator, entry) => {
-      const category = quizCategoryById[entry.quizId];
-
-      if (!category) {
-        return accumulator;
-      }
-
-      const currentTopEntry = accumulator[category];
-
-      if (!currentTopEntry || entry.score > currentTopEntry.score) {
-        accumulator[category] = entry;
-      }
-
-      return accumulator;
-    },
-    {} as Partial<Record<QuizCategory, LeaderboardEntry>>,
-  );
-
   const categoryRankings = categoryOrder.map((category) => {
     const visual = categoryChampionVisuals[category];
-    const topEntry = topByCategory[category];
+    const topEntry = liveChampions.find(c => c.category === category);
 
     return {
       name: topEntry ? topEntry.participantName : "Awaiting Results",
       tagline: topEntry
-        ? `${visual.tagline} - ${topEntry.score} pts`
+        ? `${visual.tagline} - ${topEntry.topScore} pts`
         : `${visual.tagline} - no score yet`,
       rank: "#1",
       tone: visual.tone,
       accent: visual.accent,
       icon: visual.icon,
       categoryLabel: visual.displayLabel,
+      avatarUrl: topEntry?.avatarUrl,
     };
   });
 
@@ -344,7 +274,7 @@ export default function QuizPage() {
                 </div>
 
                 {/* Transparent and blurred overlay */}
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-800/55 backdrop-blur-[3px] p-6 text-center transition-all duration-300">
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#0A2818]/55 backdrop-blur-[3px] p-6 text-center transition-all duration-300">
                   {overlayState === "start" && (
                     <div className="relative z-10 max-w-lg space-y-6 animate-in fade-in zoom-in-95 duration-500">
                       <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-[#D4A017]">
@@ -422,8 +352,7 @@ export default function QuizPage() {
                           })}
                         </div>
                       )}
-                    </div>
-                  )}
+                    </div>)}
                   {overlayState === "upcoming" && (
                     <div className="relative z-10 w-full max-w-2xl space-y-8 animate-in fade-in zoom-in-95 duration-400">
                       <button
@@ -481,12 +410,12 @@ export default function QuizPage() {
               </p>
 
               <div className="mt-6 space-y-3">
-                {leaderboard.map((entry) => {
-                  const isCurrentPlayer = entry.name === "You";
+                {liveLeaderboard.length > 0 ? liveLeaderboard.map((entry) => {
+                  const isCurrentPlayer = false; // Logic for detecting current player if needed
 
                   return (
                     <RankCard
-                      key={entry.rank}
+                      key={entry.userId}
                       rank={entry.rank}
                       name={entry.name}
                       score={entry.score}
@@ -494,7 +423,11 @@ export default function QuizPage() {
                       isCurrentPlayer={isCurrentPlayer}
                     />
                   );
-                })}
+                }) : (
+                  <p className="text-sm text-gray-500 text-center py-4 rounded-xl border border-dashed border-gray-200">
+                    No leaderboard entries yet. Play a quiz to be the first!
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -530,6 +463,7 @@ export default function QuizPage() {
                     tone={ranking.tone}
                     accent={ranking.accent}
                     icon={ranking.icon}
+                    avatarUrl={ranking.avatarUrl}
                   />
                 </div>
               ))}

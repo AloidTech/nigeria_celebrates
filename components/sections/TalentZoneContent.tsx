@@ -1,6 +1,5 @@
 'use client';
 
-import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Play, Loader2 } from 'lucide-react';
@@ -9,6 +8,7 @@ import { supabase } from '@/supabase';
 import CategoryTabs from '@/components/ui/CategoryTabs';
 import LiveBadge from '@/components/ui/LiveBadge';
 import type { TalentCardProps } from '@/components/ui/TalentCard';
+import { getLiveSubmissionsWithVotes } from '@/lib/supabase/queries/uploads';
 
 const mockCards: TalentCardProps[] = [
     {
@@ -17,8 +17,7 @@ const mockCards: TalentCardProps[] = [
         title: 'Eko Beats Freestyle',
         description: 'Raw acoustic performance blending afrobeat rhythms with soulful lyrics...',
         votes: '1.2k',
-        time: '2h ago',
-        mediaUrl: 'https://www.w3schools.com/html/mov_bbb.mp4'
+        time: '2h ago'
     },
     {
         id: 'mock-art-2',
@@ -27,8 +26,7 @@ const mockCards: TalentCardProps[] = [
         description: 'Hand-painted portrait exploring the intersection of modern youth and...',
         votes: '856',
         time: '5h ago',
-        materials: 'Charcoal, Acrylic, Gold Leaf on Canvas',
-        mediaUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800'
+        materials: 'Charcoal, Acrylic, Gold Leaf on Canvas'
     },
     {
         id: 'mock-freestyle-3',
@@ -36,8 +34,7 @@ const mockCards: TalentCardProps[] = [
         title: 'Abuja Streets Skillset',
         description: "Incredible gravity-defying tricks captured in the heart of Abuja's...",
         votes: '3.4k',
-        time: 'Just now',
-        mediaUrl: 'https://www.w3schools.com/html/movie.mp4'
+        time: 'Just now'
     },
     {
         id: 'mock-fashion-4',
@@ -45,8 +42,7 @@ const mockCards: TalentCardProps[] = [
         title: 'Aso-Oke Reimagined',
         description: 'A stunning showcase of traditional Yorùbá fabric transformed into...',
         votes: '1.1k',
-        time: '1h ago',
-        mediaUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800'
+        time: '1h ago'
     }
 ];
 
@@ -57,26 +53,42 @@ export default function TalentZoneContent() {
     useEffect(() => {
         const fetchLiveSubmissions = async () => {
             try {
-                const { data, error } = await supabase.from('submissions').select('*').eq('is_approved', true);
+                // 1. Fetch approved submissions with vote totals
+                const data = await getLiveSubmissionsWithVotes(supabase);
 
-                if (error) throw error;
+                // Fetch current user's votes to set initial highlighted states
+                const { data: { user } } = await supabase.auth.getUser();
+                const userVotesMap: Record<string, 'up' | 'down'> = {};
+                if (user) {
+                    const { data: userVotes, error: userVotesError } = await supabase
+                        .from('votes')
+                        .select('submission_id, vote_type')
+                        .eq('user_id', user.id);
+                    
+                    if (!userVotesError && userVotes) {
+                        userVotes.forEach((v) => {
+                            userVotesMap[v.submission_id] = v.vote_type === 1 ? 'up' : 'down';
+                        });
+                    }
+                }
 
-                if (data) {
-                    const liveCards: TalentCardProps[] = data.map((item) => ({
+                const liveCards: TalentCardProps[] = data.map((item) => {
+                    const totalVotes = Math.max(0, item.total_votes || 0);
+                    return {
                         id: item.id,
-                        // Match category naming convention with UI filters
                         category: item.category ? item.category.toUpperCase().replace(' (HANDMADE ONLY)', '') : 'GENERAL',
                         title: item.title,
                         description: item.description || '',
-                        votes: '0',
+                        votes: totalVotes.toString(), 
                         time: 'Just now',
-                        mediaUrl: item.media_url
-                    }));
+                        media_url: item.media_url, // Pass the media URL so the card displays the upload
+                        currentUserVote: userVotesMap[item.id] || null
+                    };
+                });
 
-                    setAllCards([...liveCards, ...mockCards]);
-                }
+                setAllCards([...liveCards, ...mockCards]);
             } catch (err) {
-                toast.error('Failed to load the live talent feed.');
+                console.error('Failed to load dynamic timeline feed:', err);
             } finally {
                 setIsLoading(false);
             }
@@ -106,8 +118,8 @@ export default function TalentZoneContent() {
             </section>
 
             {isLoading ? (
-                <div className='flex w-full items-center justify-center py-20 text-gray-500 gap-2 text-sm'>
-                    Syncing live database updates... <Loader2 className='h-4 w-4 animate-spin text-[#1A3C2E]' />
+                <div className="flex w-full items-center justify-center py-20 text-gray-500 gap-2 text-sm">
+                    Syncing live database updates... <Loader2 className="h-4 w-4 animate-spin text-[#1A3C2E]" />
                 </div>
             ) : (
                 <CategoryTabs cards={allCards} />
